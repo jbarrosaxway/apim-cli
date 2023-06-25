@@ -99,6 +99,18 @@ public class JSONClientAppAdapterTest extends APIManagerMockBase {
 		adapter.getApplications();
 	}
 	
+	@Test(expectedExceptions = AppException.class)
+	public void testMultipleAppsWithCustomProperties() throws AppException {
+		String testFile = JSONClientAppAdapterTest.class.getResource(testPackage + "/MulitpleTestApplications.json").getPath();
+		assertTrue(new File(testFile).exists(), "Test file doesn't exists");
+		AppImportParams importParams = new AppImportParams();
+		importParams.setConfig(testFile);
+		importParams.setStage("test-stage");
+		
+		ClientAppAdapter adapter = new JSONConfigClientAppAdapter(importParams);
+		adapter.getApplications();
+	}
+	
 	@Test
 	public void testCompleteApp() throws AppException {
 		String testFile = JSONClientAppAdapterTest.class.getResource(testPackage + "/CompleteApplication.json").getPath();

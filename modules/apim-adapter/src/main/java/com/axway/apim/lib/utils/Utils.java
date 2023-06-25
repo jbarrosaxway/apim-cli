@@ -269,9 +269,10 @@ public class Utils {
 			String apiId = node.get("id").asText();
 			enitityAsJsonMappedWithId.put(apiId, node);
 		}
-		Map<String, String> customProperties = new LinkedHashMap<String, String>();
+		
 		// Iterate over all APIs (at this point not yet having the custom-properties serialized)
 		for(CustomPropertiesEntity entity : entities) {
+			Map<String, String> customProperties = new LinkedHashMap<String, String>();
 			// Get the original JSON-Payload for the current API fetched from API-Manager
 			JsonNode node = enitityAsJsonMappedWithId.get(entity.getId());
 			// Iterate over all requested Custom-Properties that should be returned 

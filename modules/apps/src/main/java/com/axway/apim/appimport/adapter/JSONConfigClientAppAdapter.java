@@ -39,10 +39,12 @@ import com.axway.apim.lib.errorHandling.AppException;
 import com.axway.apim.lib.errorHandling.ErrorCode;
 import com.axway.apim.lib.utils.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class JSONConfigClientAppAdapter extends ClientAppAdapter {
 	
@@ -88,8 +90,15 @@ public class JSONConfigClientAppAdapter extends ClientAppAdapter {
 				ClientApplication app = mapper.readValue(Utils.substituteVariables(configFile), ClientApplication.class);
 				if(stageConfig!=null) {
 					try {
-						ObjectReader updater = mapper.readerForUpdating(app);
-						app = updater.readValue(Utils.substituteVariables(stageConfig));
+						
+				        ObjectNode originalObject = (ObjectNode) mapper.readTree(Utils.substituteVariables(configFile));
+				        ObjectNode updateObject = (ObjectNode) mapper.readTree(Utils.substituteVariables(stageConfig));
+
+				        updateFields(originalObject, updateObject);
+						
+						//ObjectReader updater = mapper.readerForUpdating(app);
+						//app = updater.readValue(Utils.substituteVariables(stageConfig));
+				        app = mapper.treeToValue(originalObject, ClientApplication.class);
 					} catch (FileNotFoundException e) {
 						LOG.warn("No config file found for stage: '"+stage+"'");
 					}
@@ -114,6 +123,33 @@ public class JSONConfigClientAppAdapter extends ClientAppAdapter {
 		validateAppPermissions(apps);
 		return;
 	}
+
+	private static void updateFields(ObjectNode originalObject, ObjectNode updateObject) {
+	    // Adiciona ou atualiza campos do objeto original com campos do objeto de atualização
+	    updateObject.fields().forEachRemaining(field -> {
+	        String updateKey = field.getKey();
+	        JsonNode updateValue = field.getValue();
+
+	        if (originalObject.has(updateKey)) {
+	            JsonNode originalValue = originalObject.get(updateKey);
+
+	            if (originalValue.isObject() && updateValue.isObject()) {
+	                // Se ambos os valores são objetos, atualiza recursivamente
+	                updateFields((ObjectNode) originalValue, (ObjectNode) updateValue);
+	            } else if (originalValue.isArray() && updateValue.isArray()) {
+	                // Se ambos os valores são arrays, concatena os arrays
+	                ((ArrayNode) originalValue).addAll((ArrayNode) updateValue);
+	            } else {
+	                // Se não, substitui o valor original pelo valor de atualização
+	                originalObject.set(updateKey, updateValue);
+	            }
+	        } else {
+	            // Se o objeto original não tem a chave de atualização, adiciona o novo campo
+	            originalObject.set(updateKey, updateValue);
+	        }
+	    });
+	}
+
 	
 	public ClientApplication getApplication(ClientAppFilter filter) throws AppException {
 		return getApplicationByName(filter.getApplicationName());
