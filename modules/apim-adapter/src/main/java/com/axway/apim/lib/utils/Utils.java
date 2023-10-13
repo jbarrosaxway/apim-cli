@@ -111,6 +111,9 @@ public class Utils {
         return answer.matches(positive);
     }
 
+    public static String getExternalPolicyName(String policy) {
+        return getExternalPolicyName(policy, null);
+    }
 
     public static String getExternalPolicyName(String policy, FedKeyType keyType) {
         if (keyType == null) keyType = FedKeyType.FilterCircuit;
@@ -278,9 +281,9 @@ public class Utils {
             String apiId = node.get("id").asText();
             enitityAsJsonMappedWithId.put(apiId, node);
         }
-        Map<String, String> customProperties = new LinkedHashMap<>();
         // Iterate over all APIs (at this point not yet having the custom-properties serialized)
         for (CustomPropertiesEntity entity : entities) {
+            Map<String, String> customProperties = new LinkedHashMap<>();
             // Get the original JSON-Payload for the current API fetched from API-Manager
             JsonNode node = enitityAsJsonMappedWithId.get(entity.getId());
             // Iterate over all requested Custom-Properties that should be returned
