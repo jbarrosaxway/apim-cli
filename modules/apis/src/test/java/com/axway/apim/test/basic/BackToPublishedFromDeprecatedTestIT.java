@@ -13,7 +13,7 @@ import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.test.ImportTestAction;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusTest;
@@ -32,7 +32,7 @@ public class BackToPublishedFromDeprecatedTestIT extends TestNGCitrusTestRunner 
 	public void run(@Optional @CitrusResource TestContext context) throws IOException, AppException {
 		swaggerImport = new ImportTestAction();
 		description("Once an API in status deprecated, it must be possible to go back to published, basically remove the deperation status");
-		
+		variable("useApiAdmin", "true");
 		variable("apiNumber", RandomNumberFunction.getRandomNumber(4, true));
 		variable("apiPath", "/my-test-api-${apiNumber}");
 		variable("apiName", "My-Test-API-${apiNumber}");

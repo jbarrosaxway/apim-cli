@@ -8,12 +8,17 @@ import com.axway.apim.adapter.apis.OrgFilter.Builder;
 import com.axway.apim.api.model.Organization;
 import com.axway.apim.lib.CoreParameters;
 import com.axway.apim.lib.ExportResult;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.axway.apim.lib.utils.Utils;
+import com.axway.apim.lib.utils.rest.Console;
 import com.axway.apim.organization.lib.OrgExportParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DeleteOrgHandler extends OrgResultHandler {
+	private static final Logger LOG = LoggerFactory.getLogger(DeleteOrgHandler.class);
+
 
 	public DeleteOrgHandler(OrgExportParams params, ExportResult result) {
 		super(params, result);
@@ -21,27 +26,26 @@ public class DeleteOrgHandler extends OrgResultHandler {
 
 	@Override
 	public void export(List<Organization> orgs) throws AppException {
-		System.out.println(orgs.size() + " selected for deletion.");
+		Console.println(orgs.size() + " selected for deletion.");
 		if(CoreParameters.getInstance().isForce()) {
-			System.out.println("Force flag given to delete: "+orgs.size()+" Organization(s)");
+			Console.println("Force flag given to delete: "+orgs.size()+" Organization(s)");
 		} else {
 			if(Utils.askYesNo("Do you wish to proceed? (Y/N)")) {
 			} else {
-				System.out.println("Canceled.");
+				Console.println("Canceled.");
 				return;
 			}
 		}
-		System.out.println("Okay, going to delete: " + orgs.size() + " Organization(s)");
+		Console.println("Okay, going to delete: " + orgs.size() + " Organization(s)");
 		for(Organization org : orgs) {
 			try {
 				APIManagerAdapter.getInstance().orgAdapter.deleteOrganization(org);
 			} catch(Exception e) {
 				result.setError(ErrorCode.ERR_DELETING_ORG);
-				LOG.error("Error deleting Organization: " + org.getName());
+				LOG.error("Error deleting Organization: {}" , org.getName());
 			}
 		}
-		System.out.println("Done!");
-		return;
+		Console.println("Done!");
 	}
 
 	@Override

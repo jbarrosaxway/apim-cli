@@ -12,23 +12,24 @@ import com.axway.apim.adapter.apis.OrgFilter.Builder;
 import com.axway.apim.api.model.CustomProperties.Type;
 import com.axway.apim.api.model.Organization;
 import com.axway.apim.lib.ExportResult;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.axway.apim.organization.lib.OrgExportParams;
 
 public abstract class OrgResultHandler {
-	
-	protected static Logger LOG = LoggerFactory.getLogger(OrgResultHandler.class);
-	
+
+	private static final Logger LOG = LoggerFactory.getLogger(OrgResultHandler.class);
+
 	public enum ResultHandler {
 		JSON_EXPORTER(JsonOrgExporter.class),
+		YAML_EXPORTER(YamlOrgExporter.class),
 		CONSOLE_EXPORTER(ConsoleOrgExporter.class),
 		ORG_DELETE_HANDLER(DeleteOrgHandler.class);
 		
 		private final Class<OrgResultHandler> implClass;
 		
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private ResultHandler(Class clazz) {
+		ResultHandler(Class clazz) {
 			this.implClass = clazz;
 		}
 
@@ -46,15 +47,14 @@ public abstract class OrgResultHandler {
 		try {
 			Object[] intArgs = new Object[] { params, result };
 			Constructor<OrgResultHandler> constructor =
-					exportImpl.getClazz().getConstructor(new Class[]{OrgExportParams.class, ExportResult.class});
-			OrgResultHandler exporter = constructor.newInstance(intArgs);
-			return exporter;
+					exportImpl.getClazz().getConstructor(OrgExportParams.class, ExportResult.class);
+			return constructor.newInstance(intArgs);
 		} catch (Exception e) {
 			throw new AppException("Error initializing application exporter", ErrorCode.UNXPECTED_ERROR, e);
 		}
 	}
 
-	public OrgResultHandler(OrgExportParams params, ExportResult result) {
+	protected OrgResultHandler(OrgExportParams params, ExportResult result) {
 		this.params = params;
 		this.result = result;
 	}
@@ -66,12 +66,11 @@ public abstract class OrgResultHandler {
 	}
 	
 	protected Builder getBaseOrgFilterBuilder() {
-		Builder builder = new OrgFilter.Builder()
+		return new Builder()
 				.hasId(params.getId())
 				.hasDevelopment(params.getDev())
 				.includeCustomProperties(getCustomProperties())
 				.hasName(params.getName());
-		return builder;
 	}
 	
 	protected List<String> getCustomProperties() {

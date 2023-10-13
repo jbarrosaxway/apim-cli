@@ -2,11 +2,11 @@ package com.axway.apim.lib;
 
 import org.apache.commons.cli.Option;
 
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 
 public class StandardImportCLIOptions extends CLIOptions {
 	
-	private CLIOptions cliOptions;
+	private final CLIOptions cliOptions;
 
 	public StandardImportCLIOptions(CLIOptions cliOptions) {
 		this.cliOptions = cliOptions;
@@ -18,7 +18,7 @@ public class StandardImportCLIOptions extends CLIOptions {
 
 		params.setEnabledCaches(getValue("enabledCaches"));
 		params.setStageConfig(getValue("stageConfig"));
-		return (Parameters) params;
+		return params;
 	}
 	
 	@Override
@@ -38,14 +38,10 @@ public class StandardImportCLIOptions extends CLIOptions {
 	public void addOption(Option option) {
 		cliOptions.addOption(option);
 	}
+	
 
 	@Override
-	public void addInternalOption(Option option) {
-		cliOptions.addInternalOption(option);
-	}
-
-	@Override
-	public void parse() {
+	public void parse() throws AppException{
 		cliOptions.parse();
 	}
 

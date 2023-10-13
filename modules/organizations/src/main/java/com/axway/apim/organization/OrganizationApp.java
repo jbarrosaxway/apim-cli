@@ -11,11 +11,11 @@ import com.axway.apim.api.model.Organization;
 import com.axway.apim.cli.APIMCLIServiceProvider;
 import com.axway.apim.cli.CLIServiceMethod;
 import com.axway.apim.lib.ExportResult;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
-import com.axway.apim.lib.errorHandling.ErrorCodeMapper;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
+import com.axway.apim.lib.error.ErrorCodeMapper;
 import com.axway.apim.lib.utils.rest.APIMHttpClient;
-import com.axway.apim.organization.adapter.JSONOrgAdapter;
+import com.axway.apim.organization.adapter.OrgConfigAdapter;
 import com.axway.apim.organization.adapter.OrgAdapter;
 import com.axway.apim.organization.impl.OrgResultHandler;
 import com.axway.apim.organization.impl.OrgResultHandler.ResultHandler;
@@ -27,7 +27,7 @@ import com.axway.apim.organization.lib.OrgImportParams;
 
 public class OrganizationApp implements APIMCLIServiceProvider {
 
-	private static Logger LOG = LoggerFactory.getLogger(OrganizationApp.class);
+	private static final Logger LOG = LoggerFactory.getLogger(OrganizationApp.class);
 
 	static ErrorCodeMapper errorCodeMapper = new ErrorCodeMapper();
 
@@ -52,12 +52,12 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 	}
 	
 	@CLIServiceMethod(name = "get", description = "Get Organizations from API-Manager in different formats")
-	public static int exportOrgs(String args[]) {
+	public static int exportOrgs(String[] args) {
 		OrgExportParams params;
 		try {
 			params = (OrgExportParams) OrgExportCLIOptions.create(args).getParams();
 		} catch (AppException e) {
-			LOG.error("Error " + e.getMessage());
+			LOG.error("Error {}" , e.getMessage());
 			return e.getError().getCode();
 		}
 		OrganizationApp app = new OrganizationApp();
@@ -69,11 +69,12 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 		try {
 			params.validateRequiredParameters();
 			switch(params.getOutputFormat()) {
-			case console:
-				return exportOrgs(params, ResultHandler.CONSOLE_EXPORTER, result);
-			case json:
+				case json:
 				return exportOrgs(params, ResultHandler.JSON_EXPORTER, result);
-			default:
+				case yaml:
+					return exportOrgs(params, ResultHandler.YAML_EXPORTER, result);
+				case console:
+				default:
 				return exportOrgs(params, ResultHandler.CONSOLE_EXPORTER, result);
 			}
 		} catch (AppException e) {
@@ -98,19 +99,19 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 		List<Organization> orgs = adapter.orgAdapter.getOrgs(exporter.getFilter());
 		if(orgs.size()==0) {
 			if(LOG.isDebugEnabled()) {
-				LOG.info("No organizations found using filter: " + exporter.getFilter());
+				LOG.info("No organizations found using filter: {}" , exporter.getFilter());
 			} else {
 				LOG.info("No organizations found based on the given criteria.");
 			}
 		} else {
-			LOG.info("Found " + orgs.size() + " organization(s).");
+			LOG.info("Found {} organization(s).", orgs.size());
 			
 			exporter.export(orgs);
 			if(exporter.hasError()) {
 				LOG.info("");
 				LOG.error("Please check the log. At least one error was recorded.");
 			} else {
-				LOG.debug("Successfully exported " + orgs.size() + " organization(s).");
+				LOG.debug("Successfully exported {} organization(s).", orgs.size());
 			}
 			APIManagerAdapter.deleteInstance();
 		}
@@ -123,11 +124,8 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 		try {
 			params = (OrgImportParams) OrgImportCLIOptions.create(args).getParams();
 		} catch (AppException e) {
-			LOG.error("Error " + e.getMessage());
+			LOG.error("Error {}" , e.getMessage());
 			return e.getError().getCode();
-		/*} catch (ParseException e) {
-			LOG.error("Error " + e.getMessage());
-			return ErrorCode.MISSING_PARAMETER.getCode();*/
 		}
 		OrganizationApp orgApp = new OrganizationApp();
 		return orgApp.importOrganization(params);
@@ -141,7 +139,7 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 			
 			APIManagerAdapter.getInstance();
 			// Load the desired state of the organization
-			OrgAdapter orgAdapter = new JSONOrgAdapter(params);
+			OrgAdapter orgAdapter = new OrgConfigAdapter(params);
 			List<Organization> desiredOrgs = orgAdapter.getOrganizations();
 			OrganizationImportManager importManager = new OrganizationImportManager();
 			for(Organization desiredOrg : desiredOrgs) {
@@ -162,23 +160,21 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 		} finally {
 			try {
 				APIManagerAdapter.deleteInstance();
-			} catch (AppException ignore) { }
+			} catch (AppException e) {
+				LOG.error("Unable to clean Instances", e);
+			}
 		}
 	}
 	
 	@CLIServiceMethod(name = "delete", description = "Delete selected organizatio(s) from the API-Manager")
-	public static int delete(String args[]) {
+	public static int delete(String[] args) {
 		try {
-			
 			OrgExportParams params = (OrgExportParams) OrgDeleteCLIOptions.create(args).getParams();
 			OrganizationApp orgApp = new OrganizationApp();
 			return orgApp.delete(params).getRc();
 		} catch (AppException e) {
-			LOG.error("Error " + e.getMessage());
+			LOG.error("Error : {}" , e.getMessage());
 			return e.getError().getCode();
-		/*} catch (ParseException e) {
-			LOG.error("Error " + e.getMessage());
-			return ErrorCode.MISSING_PARAMETER.getCode();*/
 		}
 	}
 	
@@ -196,11 +192,4 @@ public class OrganizationApp implements APIMCLIServiceProvider {
 			return result;
 		}
 	}
-
-	public static void main(String args[]) { 
-		int rc = exportOrgs(args);
-		System.exit(rc);
-	}
-
-
 }

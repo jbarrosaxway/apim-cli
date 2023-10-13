@@ -5,12 +5,12 @@ import org.apache.commons.cli.Option;
 import com.axway.apim.lib.CLIOptions;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.Parameters;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.organization.lib.OrgFilterParams;
 
 public class CLIOrgFilterOptions extends CLIOptions {
 	
-	private CLIOptions cliOptions;
+	private final CLIOptions cliOptions;
 
 	public CLIOrgFilterOptions(CLIOptions cliOptions) {
 		super();
@@ -28,7 +28,7 @@ public class CLIOrgFilterOptions extends CLIOptions {
 	}
 
 	@Override
-	public void parse() {
+	public void parse() throws AppException{
 		cliOptions.parse();
 	}
 
@@ -37,10 +37,6 @@ public class CLIOrgFilterOptions extends CLIOptions {
 		cliOptions.addOption(option);
 	}
 
-	@Override
-	public void addInternalOption(Option option) {
-		cliOptions.addInternalOption(option);
-	}
 	
 	@Override
 	public String getValue(String key) {

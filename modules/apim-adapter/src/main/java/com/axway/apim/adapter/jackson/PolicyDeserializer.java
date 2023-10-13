@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import org.apache.commons.text.StringEscapeUtils;
 
 public class PolicyDeserializer extends StdDeserializer<Policy> {
 	
@@ -32,10 +33,10 @@ public class PolicyDeserializer extends StdDeserializer<Policy> {
 		String policy = node.asText();
 		if(StringUtils.isEmpty(policy)) return null;
 		if(policy.startsWith("<key")) {
-			String policyName = getName(policy);
-			Policy createdColicy = new Policy(policyName);
-			createdColicy.setId(policy);
-			return createdColicy;
+			String policyName =  StringEscapeUtils.unescapeHtml4(getName(policy));
+			Policy createdPolicy = new Policy(policyName);
+			createdPolicy.setId(policy);
+			return createdPolicy;
 		} else {
 			return APIManagerAdapter.getInstance().policiesAdapter.getPolicyForName(PolicyType.getTypeForJsonKey(jp.currentName()), policy);
 		}

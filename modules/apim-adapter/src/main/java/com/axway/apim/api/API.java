@@ -6,7 +6,7 @@ import java.util.Map;
 import com.axway.apim.adapter.jackson.MarkdownLocalDeserializer;
 import com.axway.apim.adapter.jackson.OrganizationDeserializer;
 import com.axway.apim.adapter.jackson.RemotehostDeserializer;
-import com.axway.apim.api.apiSpecification.APISpecification;
+import com.axway.apim.api.specification.APISpecification;
 import com.axway.apim.api.model.APIMethod;
 import com.axway.apim.api.model.APIQuota;
 import com.axway.apim.api.model.AuthenticationProfile;
@@ -36,17 +36,17 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
  * This class defines all common properties on an API and how each property should be 
  * treated during replication.
  * APIManagerAPI and APIImportDefintion are both an instance of this class.
- * 
+ * <p>
  * Annotations for each property are used by the APIChangeState to decide:
  * - Is it a breaking change?
  * - Can the change be applied to the existing API?
  * - Which Change-Handler should finally do the required actions to replicate the change into the APIManager
- * 
+ * <p>
  * When adding new properties, please make sure to create Getter and Setter as Jackson is used to create the Instances.
- * 
+ * <p>
  * Perhaps a way to simplify the code is to use for many of the properties is to use a SimplePropertyHandler 
  * as many properties are handled in the same way.
- * 
+ * <p>
  * 
  * @author cwiechmann@axway.com
  */
@@ -95,12 +95,12 @@ public class API implements CustomPropertiesEntity {
 	protected List<AuthenticationProfile> authenticationProfiles = null;
 	
 	@APIPropertyAnnotation(writableStates = {API.STATE_UNPUBLISHED})
-	protected TagMap<String, String[]> tags = null;
+	protected TagMap tags = null;
 	
 	@APIPropertyAnnotation(isBreaking = true, writableStates = {API.STATE_UNPUBLISHED})
 	protected Map<String, OutboundProfile> outboundProfiles = null;
 	
-	@APIPropertyAnnotation(isBreaking = true, writableStates = {API.STATE_UNPUBLISHED})
+	@APIPropertyAnnotation(copyProp = false, isBreaking = true, writableStates = {API.STATE_UNPUBLISHED})
 	protected Map<String, ServiceProfile> serviceProfiles = null;
 	
 	@APIPropertyAnnotation(isBreaking = true, writableStates = {API.STATE_UNPUBLISHED})
@@ -170,7 +170,10 @@ public class API implements CustomPropertiesEntity {
 	protected String apiId = null;
 	
 	protected String deprecated = null;
-	
+
+	@JsonIgnore
+	protected String backendImportedUrl;
+
 	@JsonIgnore
 	protected String resourcePath = null;
 
@@ -240,7 +243,7 @@ public class API implements CustomPropertiesEntity {
 		this.vhost = vhost;
 	}
 
-	public TagMap<String, String[]> getTags() {
+	public TagMap getTags() {
 		return tags;
 	}
 	
@@ -424,7 +427,7 @@ public class API implements CustomPropertiesEntity {
 		return serviceProfiles;
 	}
 
-	public void setTags(TagMap<String, String[]> tags) {
+	public void setTags(TagMap tags) {
 		this.tags = tags;
 	}
 
@@ -466,15 +469,20 @@ public class API implements CustomPropertiesEntity {
 
 	@Override
 	public String toString() {
-		return this.getClass().getSimpleName() + " [path=" + path + ", id (FE-API)=" + id + ", apiId (BE-API)=" + apiId + ", vhost=" + vhost + ", apiRoutingKey=" + apiRoutingKey + "]";
+		return "API{" +
+				"path='" + path + '\'' +
+				", state='" + state + '\'' +
+				", version='" + version + '\'' +
+				", vhost='" + vhost + '\'' +
+				", name='" + name + '\'' +
+				", apiRoutingKey='" + apiRoutingKey + '\'' +
+				", id='" + id + '\'' +
+				", apiId='" + apiId + '\'' +
+				'}';
 	}
-	
+
 	public String toStringHuman() {
 		return getName() + " ("+getVersion()+") exposed on path: " + getPath();
-	}
-	
-	public String toStringShort() {
-		return getName() + " ("+getVersion()+")";
 	}
 
 	public String getApiDefinitionImport() {
@@ -546,5 +554,13 @@ public class API implements CustomPropertiesEntity {
 	 */
 	public void setRequestForAllOrgs(boolean requestForAllOrgs) {
 		this.requestForAllOrgs = requestForAllOrgs;
+	}
+
+	public String getBackendImportedUrl() {
+		return backendImportedUrl;
+	}
+
+	public void setBackendImportedUrl(String backendImportedUrl) {
+		this.backendImportedUrl = backendImportedUrl;
 	}
 }

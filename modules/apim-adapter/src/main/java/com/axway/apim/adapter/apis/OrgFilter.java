@@ -12,6 +12,10 @@ import com.axway.apim.lib.CustomPropertiesFilter;
 
 public class OrgFilter implements CustomPropertiesFilter {
 
+	public static final String FIELD = "field";
+	public static final String OP = "op";
+	public static final String VALUE = "value";
+	public static final String EQ = "eq";
 	private String id;
 	String apiId;
 	String description;
@@ -25,62 +29,55 @@ public class OrgFilter implements CustomPropertiesFilter {
 	
 	private List<String> customProperties;
 
-	private List<NameValuePair> filters = new ArrayList<NameValuePair>();
+	private final List<NameValuePair> filters = new ArrayList<>();
 
 	private OrgFilter() { }
 
 	public void setApiId(String apiId) {
 		if(apiId==null) return;
 		this.apiId = apiId;
-		filters.add(new BasicNameValuePair("field", "apiid"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", apiId));
+		filters.add(new BasicNameValuePair(FIELD, "apiid"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, apiId));
 	}
 
 	public void setDescription(String description) {
 		if(description==null) return;
 		this.description = description;
-		filters.add(new BasicNameValuePair("field", "description"));
-		filters.add(new BasicNameValuePair("op", "like"));
-		filters.add(new BasicNameValuePair("value", description));
+		filters.add(new BasicNameValuePair(FIELD, "description"));
+		filters.add(new BasicNameValuePair(OP, "like"));
+		filters.add(new BasicNameValuePair(VALUE, description));
 	}
 
 	public void setEmail(String email) {
 		if(email==null) return;
 		this.email = email;
-		filters.add(new BasicNameValuePair("field", "email"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", email));
+		filters.add(new BasicNameValuePair(FIELD, "email"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, email));
 	}
 
 	public void setEnabled(boolean enabled) {
 		if(this.enabled==enabled) return;
 		this.enabled = enabled;
-		filters.add(new BasicNameValuePair("field", "enabled"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", (enabled) ? "enabled" : "disabled"));
+		filters.add(new BasicNameValuePair(FIELD, "enabled"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, (enabled) ? "enabled" : "disabled"));
 	}
 
 	public void setName(String name) {
 		if(name==null) return;
 		if(name.equals("*")) return;
 		this.name = name;
-		String op = "eq";
-		if(name.startsWith("*") || name.endsWith("*")) {
-			op = "like";
-			name = name.replace("*", "");
-		}
-		filters.add(new BasicNameValuePair("field", "name"));
-		filters.add(new BasicNameValuePair("op", op));
-		filters.add(new BasicNameValuePair("value", name));
+		FilterHelper.setFilter(name, filters);
 	}
 
 	public void setPhone(String phone) {
 		if(phone==null) return;
 		this.phone = phone;
-		filters.add(new BasicNameValuePair("field", "phone"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", phone));
+		filters.add(new BasicNameValuePair(FIELD, "phone"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, phone));
 	}
 
 	public List<NameValuePair> getFilters() {
@@ -122,10 +119,6 @@ public class OrgFilter implements CustomPropertiesFilter {
 	public boolean isIncludeAPIAccess() {
 		return includeAPIAccess;
 	}
-	
-	public void setIncludeAPIAccess(boolean includeAPIAccess) {
-		this.includeAPIAccess = includeAPIAccess;
-	}
 
 	public List<String> getCustomProperties() {
 		return customProperties;
@@ -139,7 +132,7 @@ public class OrgFilter implements CustomPropertiesFilter {
 	public boolean equals(Object obj) {
 		if (obj == null) return false;
 		if (this == obj) return true;
-		if(obj instanceof OrgFilter == false) return false;
+		if(!(obj instanceof OrgFilter)) return false;
 		OrgFilter other = (OrgFilter)obj;
 		return (
 				StringUtils.equals(other.getId(), this.getId()) && 
@@ -163,10 +156,7 @@ public class OrgFilter implements CustomPropertiesFilter {
 	}
 	
 	public boolean filter(Organization org) {
-		if(this.development!=null && Boolean.parseBoolean(this.development)!=org.isDevelopment()) { 
-			return true;
-		}
-		return false;
+		return this.development != null && Boolean.parseBoolean(this.development) != org.isDevelopment();
 	}
 
 
@@ -188,8 +178,6 @@ public class OrgFilter implements CustomPropertiesFilter {
 		boolean includeAPIAccess;
 		
 		private List<String> customProperties;
-
-		List<NameValuePair> filters = new ArrayList<NameValuePair>();
 
 		public Builder() {
 			super();
@@ -216,28 +204,13 @@ public class OrgFilter implements CustomPropertiesFilter {
 			return this;
 		}
 
-		public Builder hasApiId(String apiId) {
-			this.apiId = apiId;
-			return this;
-		}
-
 		public Builder hasDescription(String description) {
 			this.description = description;
 			return this;
 		}
 
-		public Builder hasEmail(String email) {
-			this.email = email;
-			return this;
-		}
-
 		public Builder hasName(String name) {
 			this.name = name;
-			return this;
-		}
-
-		public Builder hasPhone(String phone) {
-			this.phone = phone;
 			return this;
 		}
 

@@ -6,16 +6,20 @@ import java.io.FilePermission;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.Permission;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.*;
 
+import com.axway.apim.lib.utils.rest.Console;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,66 +32,64 @@ import com.axway.apim.api.model.CustomProperty;
 import com.axway.apim.api.model.CustomProperty.Option;
 import com.axway.apim.lib.CoreParameters;
 import com.axway.apim.lib.CustomPropertiesFilter;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Utils {
-	
 
-	private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
-	public enum FedKeyType {
-		FilterCircuit("<key type='FilterCircuit'>"), 
-		OAuthAppProfile("<key type='OAuthAppProfile'>");
-		
-		private String keyType;
-		
-		FedKeyType(String keyType) {
-			this.keyType = keyType;
-		}
+    public enum FedKeyType {
+        FilterCircuit("<key type='FilterCircuit'>"), OAuthAppProfile("<key type='OAuthAppProfile'>");
 
-		public String getKeyType() {
-			return keyType;
-		}
-	}
-	
-	public static String getAPIDefinitionUriFromFile(String pathToAPIDefinition) throws AppException {
-		String uriToAPIDefinition;
-		try (BufferedReader br = new BufferedReader(new FileReader(pathToAPIDefinition))) {
-			uriToAPIDefinition = br.readLine();
-			return uriToAPIDefinition;
-		} catch (Exception e) {
-			throw new AppException("Can't load file:" + pathToAPIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
-		}
-	}
-	
-	public static void progressPercentage(int remain, int total, String prefix) {
-	    if (remain > total) {
-	        throw new IllegalArgumentException();
-	    }
-	    int maxBareSize = 10; // 10unit for 100%
-	    int remainPercent = ((100 * remain) / total) / maxBareSize;
-	    char defaultChar = '-';
-	    String icon = "*";
-	    String bare = new String(new char[maxBareSize]).replace('\0', defaultChar) + "]";
-	    StringBuilder bareDone = new StringBuilder();
-	    bareDone.append(prefix).append(" [");
-	    for (int i = 0; i < remainPercent; i++) {
-	        bareDone.append(icon);
-	    }
-	    String bareRemain = bare.substring(remainPercent);
-	    System.out.print("\r" + bareDone + bareRemain + " " + remainPercent * 10 + "%");
-	    if (remain == total) {
-	        System.out.print("\n");
-	    }
-	}
-	
-	public static boolean askYesNo(String question) {
+        private final String keyType;
+
+        FedKeyType(String keyType) {
+            this.keyType = keyType;
+        }
+
+        public String getKeyType() {
+            return keyType;
+        }
+    }
+
+    public static String getAPIDefinitionUriFromFile(String pathToAPIDefinition) throws AppException {
+        String uriToAPIDefinition;
+        try (BufferedReader br = new BufferedReader(new FileReader(pathToAPIDefinition))) {
+            uriToAPIDefinition = br.readLine();
+            return uriToAPIDefinition;
+        } catch (Exception e) {
+            throw new AppException("Can't load file:" + pathToAPIDefinition, ErrorCode.CANT_READ_API_DEFINITION_FILE, e);
+        }
+    }
+
+    public static void progressPercentage(int remain, int total, String prefix) {
+        if (remain > total) {
+            throw new IllegalArgumentException();
+        }
+        int maxBareSize = 10; // 10unit for 100%
+        int remainPercent = ((100 * remain) / total) / maxBareSize;
+        char defaultChar = '-';
+        String icon = "*";
+        String bare = new String(new char[maxBareSize]).replace('\0', defaultChar) + "]";
+        StringBuilder bareDone = new StringBuilder();
+        bareDone.append(prefix).append(" [");
+        for (int i = 0; i < remainPercent; i++) {
+            bareDone.append(icon);
+        }
+        String bareRemain = bare.substring(remainPercent);
+        Console.print("\r" + bareDone + bareRemain + " " + remainPercent * 10 + "%");
+        if (remain == total) {
+            Console.print("\n");
+        }
+    }
+
+    public static boolean askYesNo(String question) {
         return Utils.askYesNo(question, "[Y]", "[N]");
     }
-	
+
     public static boolean askYesNo(String question, String positive, String negative) {
         Scanner input = new Scanner(System.in);
         // Convert everything to upper case for simplicity...
@@ -95,16 +97,16 @@ public class Utils {
         negative = negative.toUpperCase();
         String answer;
         do {
-            System.out.print(question+ " ");
+            Console.print(question + " ");
             answer = input.next().trim().toUpperCase();
         } while (!answer.matches(positive) && !answer.matches(negative));
         input.close();
         // Assess if we match a positive response
         return answer.matches(positive);
     }
-    
+
     public static String getExternalPolicyName(String policy) {
-    	return getExternalPolicyName(policy, null);
+        return getExternalPolicyName(policy, null);
     }
     
 	public static String getExternalPolicyName(String policy, FedKeyType keyType) {
@@ -269,10 +271,9 @@ public class Utils {
 			String apiId = node.get("id").asText();
 			enitityAsJsonMappedWithId.put(apiId, node);
 		}
-		
+		Map<String, String> customProperties = new LinkedHashMap<String, String>();
 		// Iterate over all APIs (at this point not yet having the custom-properties serialized)
 		for(CustomPropertiesEntity entity : entities) {
-			Map<String, String> customProperties = new LinkedHashMap<String, String>();
 			// Get the original JSON-Payload for the current API fetched from API-Manager
 			JsonNode node = enitityAsJsonMappedWithId.get(entity.getId());
 			// Iterate over all requested Custom-Properties that should be returned 
@@ -319,50 +320,50 @@ public class Utils {
 		return( httpUri.startsWith("http://") || httpUri.startsWith("https://"));
 	}
 
-	public static String handleOpenAPIServerUrl(String serverUrl, String backendBasePath) throws MalformedURLException {
-		String newBackendBasePath;
-		if(isHttpUri(serverUrl)){
-			URL openApiUrl = new URL(serverUrl);
-			String path = openApiUrl.getPath();
-			if(backendBasePath.endsWith("/")){
-				newBackendBasePath = backendBasePath.substring(0, backendBasePath.length()-1) + path;
-			}else
-				newBackendBasePath = backendBasePath + path;
-		}else {
-			if(serverUrl.startsWith("/") && !backendBasePath.endsWith("/"))
-				newBackendBasePath = backendBasePath + serverUrl;
-			else if(backendBasePath.endsWith("/"))
-				newBackendBasePath = backendBasePath.substring(0, backendBasePath.length()-1) + serverUrl;
-			else newBackendBasePath = backendBasePath + "/" + serverUrl;
-		}
-		return newBackendBasePath;
-	}
+    public static String handleOpenAPIServerUrl(String serverUrl, String backendBasePath) throws MalformedURLException {
+        String newBackendBasePath;
+        if (isHttpUri(serverUrl)) {
+            URL openApiUrl = new URL(serverUrl);
+            String path = openApiUrl.getPath();
+            if (backendBasePath.endsWith("/")) {
+                newBackendBasePath = backendBasePath.substring(0, backendBasePath.length() - 1) + path;
+            } else newBackendBasePath = backendBasePath + path;
+        } else {
+            if (serverUrl.startsWith("/") && !backendBasePath.endsWith("/"))
+                newBackendBasePath = backendBasePath + serverUrl;
+            else if (backendBasePath.endsWith("/"))
+                newBackendBasePath = backendBasePath.substring(0, backendBasePath.length() - 1) + serverUrl;
+            else newBackendBasePath = backendBasePath + "/" + serverUrl;
+        }
+        return newBackendBasePath;
+    }
 
-//	public static <T> boolean areEqualIgnoringOrder(List<T> list, List<T> listDesired, Comparator<? super T> comparator) {
-//
-//		// if not the same size, lists are not equal
-//		if (list.size() != listDesired.size()) {
-//			return false;
-//		}
-//		list.sort(comparator);
-//		listDesired.sort(comparator);
-//		for (int i = 0; i < list.size(); i++) {
-//			T t1 = list.get(i);
-//			T t2 = listDesired.get(i);
-//			if (!t1.equals(t2)) {
-//				return false;
-//			}
-//		}
-//		return true;
-//	}
+    public static String ignoreBasePath(String serverUrl) {
+        if (isHttpUri(serverUrl)) {
+            URI uri = URI.create(serverUrl);
+            return serverUrl.substring(0, serverUrl.length() - uri.getPath().length());
+        }
+        return serverUrl;
+    }
 
-	public static boolean compareValues(Object actualValue, Object desiredValue) {
-		if(actualValue instanceof List) {
-			return ((List<?>)actualValue).size() == ((List<?>)desiredValue).size() &&
-					((List<?>)actualValue).containsAll((List<?>)desiredValue) &&
-					((List<?>)desiredValue).containsAll((List<?>)actualValue);
-		} else {
-			return actualValue.equals(desiredValue);
-		}
-	}
+    public static boolean compareValues(Object actualValue, Object desiredValue) {
+        if (actualValue instanceof List) {
+            return ((List<?>) actualValue).size() == ((List<?>) desiredValue).size() && ((List<?>) actualValue).containsAll((List<?>) desiredValue) && ((List<?>) desiredValue).containsAll((List<?>) actualValue);
+        } else {
+            return actualValue.equals(desiredValue);
+        }
+    }
+
+    public static String getEncryptedPassword() {
+        return "********";
+    }
+
+    public static String createFileName(String host, String stage, String prefix) throws AppException {
+        DateFormat df = new SimpleDateFormat("ddMMyyyy-HHmm");
+        String dateTime = df.format(new Date());
+        if (stage != null) {
+            host = stage;
+        }
+        return prefix + host + "_" + APIManagerAdapter.getCurrentUser().getLoginName() + "_" + dateTime + ".csv";
+    }
 }

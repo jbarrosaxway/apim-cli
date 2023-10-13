@@ -1,5 +1,6 @@
 package com.axway.apim.config;
 
+import com.axway.apim.adapter.jackson.CustomYamlFactory;
 import com.axway.apim.api.API;
 import com.axway.apim.api.model.*;
 import com.axway.apim.cli.APIMCLIServiceProvider;
@@ -7,17 +8,16 @@ import com.axway.apim.cli.CLIServiceMethod;
 import com.axway.apim.config.model.APISecurity;
 import com.axway.apim.config.model.GenerateTemplateParameters;
 import com.axway.apim.lib.StandardExportParams;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.axway.apim.lib.utils.URLParser;
+import com.axway.apim.lib.utils.Utils;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-import io.swagger.v3.core.util.Json;
-import io.swagger.v3.core.util.Yaml;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
@@ -26,6 +26,7 @@ import io.swagger.v3.parser.OpenAPIV3Parser;
 import io.swagger.v3.parser.core.models.AuthorizationValue;
 import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,10 +35,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -48,8 +47,9 @@ import java.util.*;
 
 public class GenerateTemplate implements APIMCLIServiceProvider {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     private static final Logger LOG = LoggerFactory.getLogger(GenerateTemplate.class);
+    public static final String DEFAULT = "_default";
 
     @Override
     public String getName() {
@@ -73,32 +73,35 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
 
     @CLIServiceMethod(name = "generate", description = "Generate APIM CLI Config file template from Open API")
     public static int generate(String[] args) {
+        ObjectMapper objectMapper;
         // Trust all certificate and hostname for openapi parser
         System.setProperty("TRUST_ALL","true");
-        HttpsURLConnection.setDefaultHostnameVerifier ((hostname, session) -> true);
+        HttpsURLConnection.setDefaultHostnameVerifier ((hostname, session) -> true);//NOSONAR
         LOG.info("Generating APIM CLI configuration file");
         GenerateTemplateParameters params;
         try {
             params = (GenerateTemplateParameters) GenerateTemplateCLIOptions.create(args).getParams();
         } catch (AppException e) {
-            LOG.error("Error " + e.getMessage());
+            LOG.error("Error", e);
             return e.getError().getCode();
         }
         GenerateTemplate app = new GenerateTemplate();
-        FileWriter fileWriter = null;
         try {
             APIConfig apiConfig = app.generateTemplate(params);
-            fileWriter = new FileWriter(params.getConfig());
-            String[] serializeAllExcept = new String[]{"useForInbound", "useForOutbound"};
-
-            FilterProvider filter = new SimpleFilterProvider().setDefaultFilter(SimpleBeanPropertyFilter.serializeAllExcept(serializeAllExcept));
-            objectMapper.setFilterProvider(filter);
-            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            JsonNode jsonNode = objectMapper.convertValue(apiConfig, JsonNode.class);
-            objectMapper.writeValue(fileWriter, jsonNode);
-            LOG.info("Writing APIM CLI configuration file to : {}", params.getConfig());
-
+            try(FileWriter fileWriter = new FileWriter(params.getConfig())) {
+                if(params.getOutputFormat().equals(StandardExportParams.OutputFormat.yaml))
+                    objectMapper = new ObjectMapper(CustomYamlFactory.createYamlFactory());
+                else
+                    objectMapper = new ObjectMapper();
+                String[] serializeAllExcept = new String[]{"useForInbound", "useForOutbound"};
+                FilterProvider filter = new SimpleFilterProvider().setDefaultFilter(SimpleBeanPropertyFilter.serializeAllExcept(serializeAllExcept));
+                objectMapper.setFilterProvider(filter);
+                objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                objectMapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+                JsonNode jsonNode = objectMapper.convertValue(apiConfig, JsonNode.class);
+                objectMapper.writeValue(fileWriter, jsonNode);
+                LOG.info("Writing APIM CLI configuration file to : {}", params.getConfig());
+            }
         } catch (IOException | CertificateEncodingException | NoSuchAlgorithmException | KeyManagementException e) {
             LOG.error("Error in processing :", e);
             if (e instanceof AppException) {
@@ -107,14 +110,6 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
                 return appException.getError().getCode();
             }
             return 1;
-        } finally {
-            if (fileWriter != null) {
-                try {
-                    fileWriter.close();
-                } catch (IOException e) {
-                    LOG.error("Problem in closing the file");
-                }
-            }
         }
         return 0;
     }
@@ -130,7 +125,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         String username = urlParser.getUsername();
         String password = urlParser.getPassword();
 
-        if (username != null & password != null) {
+        if (username != null && password != null) {
             String credential = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
             AuthorizationValue authorizationValue = new AuthorizationValue(HttpHeaders.AUTHORIZATION, credential, "header");
             authorizationValues.add(authorizationValue);
@@ -168,7 +163,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         }
 
         List<Tag> tags = openAPI.getTags();
-        TagMap<String, String[]> apiManagerTags = new TagMap<>();
+        TagMap apiManagerTags = new TagMap();
         for (Tag tag : tags) {
             String[] value = new String[1];
             value[0] = tag.getName();
@@ -193,7 +188,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         corsProfile.setMaxAgeSeconds("0");
 
         CorsProfile corsProfileDefault = new CorsProfile();
-        corsProfileDefault.setName("_default");
+        corsProfileDefault.setName(DEFAULT);
         corsProfileDefault.setIsDefault(true);
         corsProfileDefault.setOrigins(new String[]{"*"});
         corsProfileDefault.setAllowedHeaders(new String[]{});
@@ -208,11 +203,11 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         Map<String, InboundProfile> inboundProfiles = new HashMap<>();
         InboundProfile profile = new InboundProfile();
         profile.setCorsProfile("Custom CORS");
-        profile.setSecurityProfile("_default");
+        profile.setSecurityProfile(DEFAULT);
         profile.setMonitorAPI(true);
         profile.setMonitorSubject("authentication.subject.id");
         profile.setQueryStringPassThrough(false);
-        inboundProfiles.put("_default", profile);
+        inboundProfiles.put(DEFAULT, profile);
         api.setInboundProfiles(inboundProfiles);
         String frontendAuthType = parameters.getFrontendAuthType();
         // If frontendAuthType is null, use authentication from openapi spec. If none found, set it as pass through
@@ -221,10 +216,9 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         addOutboundSecurityToAPI(api, backendAuthType);
         String apiSpecLocation;
         if (uri.startsWith("https")) {
-            downloadCertificates(api, parameters.getConfig(), uri);
-        }
-        if(uri.startsWith("http")){
-            apiSpecLocation = downloadAPISpecification(openAPI, parameters.getConfig(), parameters.getOutputFormat());
+            apiSpecLocation = downloadCertificatesAndContent(api, parameters.getConfig(), uri);
+        }else if (uri.startsWith("http")){
+            apiSpecLocation = downloadContent(parameters.getConfig(), uri);
         }else{
             apiSpecLocation = parameters.getApiDefinition();
         }
@@ -232,17 +226,12 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         return new APIConfig(api, apiSpecLocation, securityProfiles);
     }
 
-
-    public static void main(String[] args) {
-        int rc = generate(args);
-        System.exit(rc);
-    }
-
-    private void addOutboundSecurityToAPI(API api, String backendAuthType) throws AppException {
+    public AuthType matchAuthType(String backendAuthType){
         AuthType authType = null;
         try {
             authType = AuthType.valueOf(backendAuthType);
         } catch (IllegalArgumentException e) {
+            LOG.error("Invalid backend auth type", e);
         }
         if (authType == null) {
             for (AuthType authTypeEnum : AuthType.values()) {
@@ -260,12 +249,16 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
                 }
             }
         }
+        return authType;
+    }
+    private void addOutboundSecurityToAPI(API api, String backendAuthType) throws AppException {
+        AuthType authType = matchAuthType(backendAuthType);
         if (authType == null) {
             throw new AppException("backendAuthType : " + backendAuthType + "  is invalid", ErrorCode.INVALID_PARAMETER);
         }
         List<AuthenticationProfile> authnProfiles = new ArrayList<>();
         AuthenticationProfile authNProfile = new AuthenticationProfile();
-        authNProfile.setName("_default");
+        authNProfile.setName(DEFAULT);
         authNProfile.setType(authType);
         authNProfile.setIsDefault(true);
         Map<String, Object> parameters = new LinkedHashMap<>();
@@ -282,7 +275,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         } else if (authType.equals(AuthType.ssl)) {
             parameters.put("source", "file");
             parameters.put("certFile", "../certificates/clientcert.pfx");
-            parameters.put("password", "myClientCertPW");
+            parameters.put("password", Utils.getEncryptedPassword());
             parameters.put("trustAll", true);
         }
         authNProfile.setParameters(parameters);
@@ -290,11 +283,12 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         api.setAuthenticationProfiles(authnProfiles);
     }
 
-    private Map<String, Object> addInboundSecurityToAPI(String frontendAuthType) throws AppException {
+    public DeviceType matchDeviceType(String frontendAuthType){
         DeviceType deviceType = null;
         try {
             deviceType = DeviceType.valueOf(frontendAuthType);
         } catch (IllegalArgumentException e) {
+            LOG.debug("Invalid Frontend AuthType : {} going to try with alternate names", frontendAuthType);
         }
 
         if (deviceType == null) {
@@ -313,6 +307,12 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
                 }
             }
         }
+        return deviceType;
+    }
+
+    private Map<String, Object> addInboundSecurityToAPI(String frontendAuthType) throws AppException {
+        DeviceType deviceType = matchDeviceType(frontendAuthType);
+        LOG.info("Frontend Authentication type : {}", frontendAuthType );
         if (deviceType == null) {
             throw new AppException("frontendAuthType : " + frontendAuthType + "  is invalid", ErrorCode.INVALID_PARAMETER);
         }
@@ -344,7 +344,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         }
         apiSecurity.setProperties(properties);
         Map<String, Object> securityProfile = new LinkedHashMap<>();
-        securityProfile.put("name", "_default");
+        securityProfile.put("name", DEFAULT);
         securityProfile.put("isDefault", true);
         List<APISecurity> apiSecurities = new ArrayList<>();
         apiSecurities.add(apiSecurity);
@@ -370,41 +370,53 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         properties.put("authCodeGrantTypeTokenEndpointTokenName", "access_code");
     }
 
-    public String downloadAPISpecification(OpenAPI openAPI, String configPath, StandardExportParams.OutputFormat outputFormat) throws IOException {
+    public String writeAPISpecification(String url, String configPath, InputStream inputStream) throws IOException {
+        String filename;
+        try {
+            filename = new File(new URL(url).getPath()).getName();
+            String content = IOUtils.toString(inputStream, "UTF-8");
+            File file = new File(configPath);
+            String parent = file.getParent();
 
-        File file = new File(configPath);
-        String parent = file.getParent();
-        String filename = "openapi.yaml";
-        ObjectMapper openAPIMapper;
-        if(outputFormat.equals(StandardExportParams.OutputFormat.json)){
-            filename = "openapi.json";
-            openAPIMapper = Json.mapper();
-        }else {
-            openAPIMapper = Yaml.mapper();
-        }
-        if (parent != null) {
-            filename = file.toPath().getParent().toString() + File.separator + filename;
-        }
-        LOG.info("Writing API specification to : {}", filename);
-        try (FileWriter fileWriter = new FileWriter(filename)) {
-            String value = openAPIMapper.writeValueAsString(openAPI);
-            fileWriter.write(value);
-            fileWriter.flush();
+            if (parent != null) {
+                filename = file.toPath().getParent().toString() + File.separator + filename;
+            }
+            LOG.info("Writing API specification to : {}", filename);
+            try (FileWriter fileWriter = new FileWriter(filename)) {
+                fileWriter.write(content);
+                fileWriter.flush();
+            }
+        }finally {
+            if(inputStream != null){
+                inputStream.close();
+            }
         }
         return filename;
     }
 
+    public String downloadContent(String configPath, String url) throws IOException {
+        URL httpURL = new URL(url);
+        HttpURLConnection httpURLConnection = (HttpURLConnection) httpURL.openConnection();
+        int responseCode = httpURLConnection.getResponseCode();
+        String filePath = null;
+        LOG.debug("Response Code : {}", responseCode);
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            filePath = writeAPISpecification(url, configPath, httpURLConnection.getInputStream());
+        }
+        return filePath;
+    }
 
-    public void downloadCertificates(API api, String configPath, String url) throws IOException, CertificateEncodingException, NoSuchAlgorithmException, KeyManagementException {
+
+    public String downloadCertificatesAndContent(API api, String configPath, String url) throws IOException, CertificateEncodingException, NoSuchAlgorithmException, KeyManagementException {
         TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
             public java.security.cert.X509Certificate[] getAcceptedIssuers() {
                 return null;
             }
 
-            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {//NOSONAR
             }
 
-            public void checkServerTrusted(X509Certificate[] certs, String authType) {
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {//NOSONAR
             }
         }};
 
@@ -434,7 +446,7 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
                 if (parent != null) {
                     filename = file.toPath().getParent().toString() + File.separator + filename;
                 }
-                try (FileOutputStream fileOutputStream = new FileOutputStream(filename)) {
+                try (FileOutputStream fileOutputStream = new FileOutputStream(filename)) {//NOSONAR
                     fileOutputStream.write(certContent);
                 } catch (IOException e) {
                     throw new AppException("Can't write file", ErrorCode.UNXPECTED_ERROR, e);
@@ -445,7 +457,14 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
                 caCerts.add(caCert);
             }
         }
+        int responseCode = httpsURLConnection.getResponseCode();
+        String filePath = null;
+        LOG.debug("Response Code : {}", responseCode);
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            filePath = writeAPISpecification(url, configPath, httpsURLConnection.getInputStream());
+        }
         api.setCaCerts(caCerts);
+        return filePath;
     }
 
     public String createCertFileName(X509Certificate certificate) {
@@ -461,14 +480,12 @@ public class GenerateTemplate implements APIMCLIServiceProvider {
         if (filename == null) {
             LOG.warn("No CN");
             filename = "UnknownCertificate_" + UUID.randomUUID();
-            LOG.warn("Created a random filename: " + filename + ".ctr");
+            LOG.warn("Created a random filename: {}" , filename );
         } else {
             filename = filename.replace(" ", "");
             filename = filename.replace("*", "");
-            if (filename.startsWith(".")) filename = filename.replaceFirst(".", "");
+            if (filename.startsWith(".")) filename = filename.replaceFirst("\\.", "");
         }
         return filename + ".crt";
     }
-
-
 }

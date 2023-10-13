@@ -5,12 +5,13 @@ import org.apache.commons.cli.Option;
 import com.axway.apim.lib.CLIOptions;
 import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.Parameters;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.users.lib.params.UserFilterParams;
 
 public class CLIUserFilterOptions extends CLIOptions {
-	
-	private CLIOptions cliOptions;
+
+	public static final String ENABLED = "enabled";
+	private final CLIOptions cliOptions;
 
 	public CLIUserFilterOptions(CLIOptions cliOptions) {
 		super();
@@ -27,8 +28,8 @@ public class CLIUserFilterOptions extends CLIOptions {
 		params.setOrg(getValue("org"));
 		params.setRole(getValue("role"));
 		params.setState(getValue("state"));
-		if(getValue("enabled")!=null) {
-			params.setEnabled(Boolean.parseBoolean(getValue("enabled")));
+		if(getValue(ENABLED)!=null) {
+			params.setEnabled(Boolean.parseBoolean(getValue(ENABLED)));
 		}
 		params.setId(getValue("id"));
 		
@@ -36,18 +37,13 @@ public class CLIUserFilterOptions extends CLIOptions {
 	}
 
 	@Override
-	public void parse() {
+	public void parse() throws AppException{
 		cliOptions.parse();
 	}
 
 	@Override
 	public void addOption(Option option) {
 		cliOptions.addOption(option);
-	}
-
-	@Override
-	public void addInternalOption(Option option) {
-		cliOptions.addInternalOption(option);
 	}
 	
 	@Override
@@ -107,7 +103,7 @@ public class CLIUserFilterOptions extends CLIOptions {
 		option.setArgName("approved|pending");
 		addOption(option);
 		
-		option = new  Option("enabled", true, "Filter users based on the enablement flag. By default enabled users are include by default.");
+		option = new  Option(ENABLED, true, "Filter users based on the enablement flag. By default enabled users are include by default.");
 		option.setRequired(false);
 		option.setArgName("true|false");
 		addOption(option);

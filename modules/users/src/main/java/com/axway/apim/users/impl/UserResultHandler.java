@@ -12,8 +12,8 @@ import com.axway.apim.adapter.user.UserFilter.Builder;
 import com.axway.apim.api.model.CustomProperties.Type;
 import com.axway.apim.api.model.User;
 import com.axway.apim.lib.ExportResult;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.axway.apim.users.lib.params.UserExportParams;
 
 public abstract class UserResultHandler {
@@ -22,6 +22,7 @@ public abstract class UserResultHandler {
 	
 	public enum ResultHandler {
 		JSON_EXPORTER(JsonUserExporter.class),
+		YAML_EXPORTER(YamlUserExporter.class),
 		CONSOLE_EXPORTER(ConsoleUserExporter.class),
 		USER_DELETE_HANDLER(DeleteUserHandler.class),
 		USER_CHANGE_PASSWORD_HANDLER(UserChangePasswordHandler.class);
@@ -29,7 +30,7 @@ public abstract class UserResultHandler {
 		private final Class<UserResultHandler> implClass;
 		
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		private ResultHandler(Class clazz) {
+		ResultHandler(Class clazz) {
 			this.implClass = clazz;
 		}
 
@@ -47,15 +48,14 @@ public abstract class UserResultHandler {
 		try {
 			Object[] intArgs = new Object[] { params, result };
 			Constructor<UserResultHandler> constructor =
-					exportImpl.getClazz().getConstructor(new Class[]{UserExportParams.class, ExportResult.class});
-			UserResultHandler exporter = constructor.newInstance(intArgs);
-			return exporter;
+					exportImpl.getClazz().getConstructor(UserExportParams.class, ExportResult.class);
+			return constructor.newInstance(intArgs);
 		} catch (Exception e) {
 			throw new AppException("Error initializing application exporter", ErrorCode.UNXPECTED_ERROR, e);
 		}
 	}
 
-	public UserResultHandler(UserExportParams params, ExportResult result) {
+	protected UserResultHandler(UserExportParams params, ExportResult result) {
 		this.params = params;
 		this.result = result;
 	}
@@ -67,7 +67,7 @@ public abstract class UserResultHandler {
 	}
 	
 	protected Builder getBaseFilterBuilder() {
-		Builder builder = new UserFilter.Builder()
+		return new Builder()
 				.hasId(params.getId())
 				.hasLoginName(params.getLoginName())
 				.hasName(params.getName())
@@ -77,7 +77,6 @@ public abstract class UserResultHandler {
 				.hasRole(params.getRole())
 				.includeCustomProperties(getAPICustomProperties())
 				.isEnabled(params.isEnabled());
-		return builder;
 	}
 	
 	protected List<String> getAPICustomProperties() {

@@ -3,8 +3,8 @@ package com.axway.apim.apiimport.actions;
 import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.adapter.apis.APIManagerAPIMethodAdapter;
 import com.axway.apim.api.model.APIMethod;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +25,7 @@ public class ManageApiMethods {
                     .collect(Collectors.toList());
             desiredApiMethods.removeAll(differences);
             LOG.info("Total number of methods to be updated : {}", desiredApiMethods.size());
-            if (desiredApiMethods.size() > 0) {
+            if (!desiredApiMethods.isEmpty()) {
                 APIManagerAPIMethodAdapter apiManagerAPIMethodAdapter = apiManager.methodAdapter;
                 List<APIMethod> apiMethods = apiManagerAPIMethodAdapter.getAllMethodsForAPI(frontendApiId);
                 List<String> updatedMethodNames = new ArrayList<>();
@@ -60,8 +60,8 @@ public class ManageApiMethods {
             LOG.error("API Methods mismatch - Number of API Methods in API Manager : {} and Number of API Methods in API config file : {}", actualApiMethods.size(), desiredApiMethods.size());
             throw new AppException("API Methods mismatch", ErrorCode.BREAKING_CHANGE_DETECTED);
         }
-        List<String> desiredApiMethodsName = desiredApiMethods.stream().map(apiMethod -> apiMethod.getName()).collect(Collectors.toList());
-        List<String> actualApiMethodsName = actualApiMethods.stream().map(apiMethod -> apiMethod.getName()).collect(Collectors.toList());
+        List<String> desiredApiMethodsName = desiredApiMethods.stream().map(APIMethod::getName).collect(Collectors.toList());
+        List<String> actualApiMethodsName = actualApiMethods.stream().map(APIMethod::getName).collect(Collectors.toList());
         for (String desiredApiMethodName : desiredApiMethodsName) {
             if (!actualApiMethodsName.contains(desiredApiMethodName)) {
                 LOG.error("API Method mismatch - Name of API Method  - {} - in API config file is not matching with  name of API Method in API Manager", desiredApiMethodName);

@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 
 import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.lib.CoreParameters.Mode;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.test.ImportTestAction;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusTest;
@@ -28,7 +28,7 @@ public class QuotaModeReplaceTestIT extends TestNGCitrusTestRunner {
 	public void run(@Optional @CitrusResource TestContext context) throws IOException, AppException, InterruptedException {
 		swaggerImport = new ImportTestAction();
 		description("If the Quota-Mode is set to replace, evtl. existing quotas should be replaced.");
-		
+		variable("useApiAdmin", "true");
 		variable("apiNumber", RandomNumberFunction.getRandomNumber(3, true));
 		variable("apiPath", "/quota-replace-api-${apiNumber}");
 		variable("apiName", "Quota-${apiNumber}-Replace-API");

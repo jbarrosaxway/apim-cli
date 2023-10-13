@@ -1,0 +1,15 @@
+[
+  {
+    "id": "7463fb84-25ff-4a0c-8bb0-0c548f821e7b",
+    "organizationId": "9379ee58-312e-46b3-a06c-dc413d593603",
+    "name": "Anna Owen 2172",
+    "loginName": "testoadmin",
+    "email": "anna-2172@axway.com",
+    "role": "oadmin",
+    "enabled": true,
+    "createdOn": 1676353349983,
+    "state": "approved",
+    "type": "internal",
+    "dn": "cn=testoadmin,o=API Development 2172,ou=organizations,ou=APIPortal"
+  }
+]

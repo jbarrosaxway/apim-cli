@@ -1,0 +1,63 @@
+name: Release API CLI on github and Maven repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: "Default version to use when preparing a release."
+        required: true
+        default: "1.14.0"
+      developmentVersion:
+        description: "Default version to use for new local working copy."
+        required: true
+        default: "1.14.1-SNAPSHOT"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.TOKEN_GITHUB }}
+      - name: Set up Java to deploy to OSSRH
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Configure Git user
+        run: |
+          git config user.email "rathnapandi.n@gmail.com"
+          git config user.name $github.actor
+      - name: Prepare & PublishRelease
+        run: mvn -Dmaven.test.skip=true release:prepare  release:perform -P release -DreleaseVersion=${{ github.event.inputs.releaseVersion }} -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GITHUB }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+#      - name: Publish package
+#        run: mvn -Darguments=-DskipTests release:perform -P release
+#        env:
+#          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+#          MAVEN_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+#          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1
+        with:
+          name: APIM-CLI ${{ github.event.inputs.releaseVersion }}
+          tag: ${{ github.event.inputs.releaseVersion }}
+          artifacts: "distribution/target/*.tar.gz,distribution/target/*.zip"
+          draft: true
+#      - name: RollBack Release
+#        if: ${{ failure() }}
+#        run: mvn release:rollback
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+

@@ -7,7 +7,7 @@ import org.testng.annotations.Optional;
 import org.testng.annotations.Parameters;
 import org.testng.annotations.Test;
 
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.test.ImportTestAction;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusTest;
@@ -26,7 +26,7 @@ public class PublishedSubscribeUpgradeAccessAPITestIT extends TestNGCitrusTestRu
 	public void run(@Optional @CitrusResource TestContext context) throws IOException, AppException {
 		swaggerImport = new ImportTestAction();
 		echo("####### Import a Published-API, subscribe to it and then Re-Import a new version. #######");
-		
+		variable("useApiAdmin", "true");
 		variable("apiNumber", RandomNumberFunction.getRandomNumber(4, true));
 		variable("apiPath", "/my-test-api-${apiNumber}");
 		variable("apiName", "My-Test-API-${apiNumber}");

@@ -6,14 +6,14 @@ import org.slf4j.LoggerFactory;
 import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.adapter.apis.APIManagerOrganizationAdapter;
 import com.axway.apim.api.model.Organization;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 
 public class OrganizationImportManager {
 	
-	private static Logger LOG = LoggerFactory.getLogger(OrganizationImportManager.class);
+	private static final Logger LOG = LoggerFactory.getLogger(OrganizationImportManager.class);
 	
-	private APIManagerOrganizationAdapter orgAdapter;
+	private final APIManagerOrganizationAdapter orgAdapter;
 	
 	public OrganizationImportManager() throws AppException {
 		super();
@@ -24,12 +24,12 @@ public class OrganizationImportManager {
 		if(actualOrg==null) {
 			orgAdapter.createOrganization(desiredOrg);
 		} else if(orgsAreEqual(desiredOrg, actualOrg)) {
-			LOG.debug("No changes detected between Desired- and Actual-Organization: " + desiredOrg.getName());
+			LOG.debug("No changes detected between Desired- and Actual-Organization: {}" , desiredOrg.getName());
 			throw new AppException("No changes detected between Desired- and Actual-Org: "+desiredOrg.getName()+".", ErrorCode.NO_CHANGE);			
 		} else {
-			LOG.debug("Update existing organization: " + desiredOrg.getName());
+			LOG.debug("Update existing organization: {}" , desiredOrg.getName());
 			orgAdapter.updateOrganization(desiredOrg, actualOrg);
-			LOG.info("Successfully replicated organization: "+desiredOrg.getName()+" into API-Manager");
+			LOG.info("Successfully replicated organization: {} into API-Manager", desiredOrg.getName());
 		}
 	}
 	

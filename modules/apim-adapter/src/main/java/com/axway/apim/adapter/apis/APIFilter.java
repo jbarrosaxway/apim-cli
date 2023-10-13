@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.adapter.apis.APIFilter.Builder.APIType;
-import com.axway.apim.adapter.clientApps.ClientAppFilter;
+import com.axway.apim.adapter.client.apps.ClientAppFilter;
 import com.axway.apim.api.API;
 import com.axway.apim.api.model.AuthType;
 import com.axway.apim.api.model.AuthenticationProfile;
@@ -27,14 +27,18 @@ import com.axway.apim.api.model.Policy;
 import com.axway.apim.api.model.SecurityDevice;
 import com.axway.apim.api.model.SecurityProfile;
 import com.axway.apim.lib.CustomPropertiesFilter;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.lib.utils.Utils;
 import com.axway.apim.lib.utils.Utils.FedKeyType;
 
 public class APIFilter implements CustomPropertiesFilter {
-	
+
 	private static final Logger LOG = LoggerFactory.getLogger(ClientAppFilter.class);
-	
+	public static final String FIELD = "field";
+	public static final String OP = "op";
+	public static final String VALUE = "value";
+	public static final String EQ = "eq";
+
 	public enum METHOD_TRANSLATION {
 		NONE, 
 		AS_NAME, 
@@ -70,7 +74,6 @@ public class APIFilter implements CustomPropertiesFilter {
 	private String outboundAuthentication;
 	private String organization;
 	private String createdOn;
-	private FILTER_OP createdOnOp;
 	private APIType type;
 	private String policyName;
 	private String tag;
@@ -119,9 +122,9 @@ public class APIFilter implements CustomPropertiesFilter {
 	public void setApiId(String apiId) {
 		if(apiId==null) return;
 		this.apiId = apiId;
-		filters.add(new BasicNameValuePair("field", "apiid"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", apiId));
+		filters.add(new BasicNameValuePair(FIELD, "apiid"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, apiId));
 	}
 
 	public String getName() {
@@ -133,14 +136,7 @@ public class APIFilter implements CustomPropertiesFilter {
 		// All applications are requested - We ignore this filter
 		if(name.equals("*")) return;
 		this.name = name;
-		String op = "eq";
-		if(name.startsWith("*") || name.endsWith("*")) {
-			op = "like";
-			name = name.replace("*", "");
-		}
-		filters.add(new BasicNameValuePair("field", "name"));
-		filters.add(new BasicNameValuePair("op", op));
-		filters.add(new BasicNameValuePair("value", name));
+		FilterHelper.setFilter(name, filters);
 	}
 
 	public void setVhost(String vhost) {
@@ -203,16 +199,16 @@ public class APIFilter implements CustomPropertiesFilter {
 	public void setApiPath(String apiPath) {
 		if(apiPath==null) return;
 		this.apiPath = apiPath;
-		String op = "eq";
+		String op = EQ;
 		if(apiPath.startsWith("*") || apiPath.endsWith("*")) {
 			op = "like";
 			apiPath = apiPath.replace("*", "");
 		}
 		// Only from version 7.7 on we can query for the path directly.
 		if(APIManagerAdapter.hasAPIManagerVersion("7.7")) {
-			filters.add(new BasicNameValuePair("field", "path"));
-			filters.add(new BasicNameValuePair("op", op));
-			filters.add(new BasicNameValuePair("value", apiPath));
+			filters.add(new BasicNameValuePair(FIELD, "path"));
+			filters.add(new BasicNameValuePair(OP, op));
+			filters.add(new BasicNameValuePair(VALUE, apiPath));
 		}
 	}
 
@@ -264,24 +260,12 @@ public class APIFilter implements CustomPropertiesFilter {
 		this.translateMethodMode = translateMethodMode;
 	}
 
-	public POLICY_TRANSLATION getTranslatePolicyMode() {
-		return translatePolicyMode;
-	}
-
 	public void setTranslatePolicyMode(POLICY_TRANSLATION translatePolicyMode) {
 		this.translatePolicyMode = translatePolicyMode;
 	}
 
-	public boolean isLoadBackendAPI() {
-		return loadBackendAPI;
-	}
-
 	public void setLoadBackendAPI(boolean loadBackendAPI) {
 		this.loadBackendAPI = loadBackendAPI;
-	}
-
-	public boolean isIncludeOperations() {
-		return includeOperations;
 	}
 
 	public void setIncludeOperations(boolean includeOperations) {
@@ -316,10 +300,6 @@ public class APIFilter implements CustomPropertiesFilter {
 		return includeClientAppQuota;
 	}
 
-	public void setIncludeClientAppQuota(boolean includeClientAppQuota) {
-		this.includeClientAppQuota = includeClientAppQuota;
-	}	
-
 	public boolean isIncludeImage() {
 		return includeImage;
 	}
@@ -336,10 +316,6 @@ public class APIFilter implements CustomPropertiesFilter {
 		this.includeRemoteHost = includeRemoteHost;
 	}
 
-	public void setApiType(String apiType) {
-		this.apiType = apiType;
-	}
-
 	public boolean isDeprecated() {
 		return deprecated;
 	}
@@ -347,9 +323,9 @@ public class APIFilter implements CustomPropertiesFilter {
 	public void setDeprecated(boolean deprecated) {
 		if(this.deprecated==deprecated) return;
 		this.deprecated = deprecated;
-		filters.add(new BasicNameValuePair("field", "deprecated"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", (deprecated) ? "true" : "false"));
+		filters.add(new BasicNameValuePair(FIELD, "deprecated"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, (deprecated) ? "true" : "false"));
 	}
 
 	public String getState() {
@@ -363,34 +339,30 @@ public class APIFilter implements CustomPropertiesFilter {
 	public void setRetired(boolean retired) {
 		if(this.retired==retired) return;
 		this.retired = retired;
-		filters.add(new BasicNameValuePair("field", "retired"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", (retired) ? "true" : "false"));
+		filters.add(new BasicNameValuePair(FIELD, "retired"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, (retired) ? "true" : "false"));
 	}
 
 	public void setState(String state) {
 		if(state==null) return;
 		this.state = state;
-		filters.add(new BasicNameValuePair("field", "state"));
-		filters.add(new BasicNameValuePair("op", "eq"));
-		filters.add(new BasicNameValuePair("value", state));
+		filters.add(new BasicNameValuePair(FIELD, "state"));
+		filters.add(new BasicNameValuePair(OP, EQ));
+		filters.add(new BasicNameValuePair(VALUE, state));
 	}
 	
 	public void setCreatedOn(List<String[]> createdOn) {
 		if(createdOn==null) return;
 		for(String[] createdOnFilter : createdOn) {
-			filters.add(new BasicNameValuePair("field", "createdOn"));
-			filters.add(new BasicNameValuePair("op", createdOnFilter[1]));
-			filters.add(new BasicNameValuePair("value", createdOnFilter[0]));
+			filters.add(new BasicNameValuePair(FIELD, "createdOn"));
+			filters.add(new BasicNameValuePair(OP, createdOnFilter[1]));
+			filters.add(new BasicNameValuePair(VALUE, createdOnFilter[0]));
 		}
 	}
 	
 	public String getCreatedOn() {
 		return createdOn;
-	}
-	
-	public FILTER_OP getCreatedOnOp() {
-		return createdOnOp;
 	}
 
 	public List<String> getCustomProperties() {
@@ -440,27 +412,43 @@ public class APIFilter implements CustomPropertiesFilter {
 
 	@Override
 	public String toString() {
-		if(LOG.isTraceEnabled()) {
-			return "APIFilter [id=" + id + ", apiId=" + apiId + ", name=" + name + ", vhost=" + vhost + ", apiPath="
-					+ apiPath + ", queryStringVersion=" + queryStringVersion + ", state=" + state + ", customProperties="
-					+ customProperties + ", deprecated=" + deprecated + ", retired=" + retired + ", apiType=" + apiType
-					+ ", translateMethodMode=" + translateMethodMode + ", loadBackendAPI=" + loadBackendAPI
-					+ ", includeOperations=" + includeOperations + ", includeQuotas=" + includeQuotas
-					+ ", includeClientOrganizations=" + includeClientOrganizations + ", includeClientApplications="
-					+ includeClientApplications + ", includeImage=" + includeImage + ", includeOriginalAPIDefinition="
-					+ includeOriginalAPIDefinition + ", translatePolicyMode=" + translatePolicyMode + ", filters=" + filters
-					+ "]";
-		} else if(LOG.isDebugEnabled()) {
-			return "APIFilter [id=" + id + ", name=" + name + ", vhost=" + vhost + ", apiPath=" + apiPath
-					+ ", queryStringVersion=" + queryStringVersion + ", state=" + state + ", deprecated=" + deprecated
-					+ ", retired=" + retired + ", loadBackendAPI=" + loadBackendAPI + "]";
-		} else {
-			return "APIFilter [id=" + id + ", name=" + name + ", vhost=" + vhost + ", apiPath=" + apiPath
-					+ ", queryStringVersion=" + queryStringVersion + "]";			
-		}
+		return "APIFilter{" +
+				"id='" + id + '\'' +
+				", apiId='" + apiId + '\'' +
+				", name='" + name + '\'' +
+				", vhost='" + vhost + '\'' +
+				", apiPath='" + apiPath + '\'' +
+				", queryStringVersion='" + queryStringVersion + '\'' +
+				", state='" + state + '\'' +
+				", backendBasepath='" + backendBasepath + '\'' +
+				", inboundSecurity='" + inboundSecurity + '\'' +
+				", outboundAuthentication='" + outboundAuthentication + '\'' +
+				", organization='" + organization + '\'' +
+				", createdOn='" + createdOn + '\'' +
+				", type=" + type +
+				", policyName='" + policyName + '\'' +
+				", tag='" + tag + '\'' +
+				", customProperties=" + customProperties +
+				", deprecated=" + deprecated +
+				", retired=" + retired +
+				", apiType='" + apiType + '\'' +
+				", translateMethodMode=" + translateMethodMode +
+				", loadBackendAPI=" + loadBackendAPI +
+				", includeOperations=" + includeOperations +
+				", includeQuotas=" + includeQuotas +
+				", includeClientOrganizations=" + includeClientOrganizations +
+				", includeClientApplications=" + includeClientApplications +
+				", includeClientAppQuota=" + includeClientAppQuota +
+				", includeImage=" + includeImage +
+				", includeRemoteHost=" + includeRemoteHost +
+				", includeOriginalAPIDefinition=" + includeOriginalAPIDefinition +
+				", useFEAPIDefinition=" + useFEAPIDefinition +
+				", failOnError=" + failOnError +
+				", includeMethods=" + includeMethods +
+				", translatePolicyMode=" + translatePolicyMode +
+				'}';
 	}
-	
-	
+
 	public boolean filter(API api) {
 		if(this.getApiPath()==null && this.getVhost()==null && this.getQueryStringVersion()==null && this.getPolicyName()==null && this.getBackendBasepath()==null 
 				&& this.getTag()==null && this.getInboundSecurity()==null && this.getOutboundAuthentication()==null && this.getOrganization()==null) { // Nothing given to filter out.
@@ -718,7 +706,6 @@ public class APIFilter implements CustomPropertiesFilter {
 				this.includeImage = true;
 				break;
 			case DESIRED_API:
-				break;
 			default:
 				break;
 			}
@@ -799,12 +786,7 @@ public class APIFilter implements CustomPropertiesFilter {
 			this.filters = filters;
 			return this;
 		}
-		
-		public Builder includeOperations(boolean includeOperations) {
-			this.includeOperations = includeOperations;
-			return this;
-		}
-		
+
 		public Builder includeQuotas(boolean includeQuotas) {
 			this.includeQuotas = includeQuotas;
 			return this;
@@ -906,7 +888,7 @@ public class APIFilter implements CustomPropertiesFilter {
 			for (OutboundProfile profile : api.getOutboundProfiles().values()) {
 				for (Policy policy : profile.getAllPolices()) {
 					if (policy.getName() == null) {
-						LOG.warn("Cannot check policy: " + policy + " as policy name is empty.");
+						LOG.warn("Cannot check policy: {} as policy name is empty.", policy);
 						continue;
 					}
 					Matcher matcher = pattern.matcher(policy.getName().toLowerCase());

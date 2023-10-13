@@ -4,14 +4,106 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [1.13.7] 2023-04-21
+
+
+- Add output for apim.sh api check-cert (See issue [#374](https://github.com/Axway-API-Management-Plus/apim-cli/issues/374))
+- A change in application quota is not detected (See issue [#382](https://github.com/Axway-API-Management-Plus/apim-cli/issues/382))
+- Snakeyaml size limitation (Nullpointer Exception when downloading API Spec via apim CLI) (See issue [#384](https://github.com/Axway-API-Management-Plus/apim-cli/issues/384))
+
+## [1.13.6] 2023-04-03
+
+### Fixed
+- Command Line Option "zeroDowntimeUpdate" is not working (See issue [#370](https://github.com/Axway-API-Management-Plus/apim-cli/issues/370))
+- Error updating existing app quota that has no pre-existing quota (See issue [#371](https://github.com/Axway-API-Management-Plus/apim-cli/issues/371))
+- [APIExportApp] ERROR: An error happened during export. Please check the log (See issue [#376](https://github.com/Axway-API-Management-Plus/apim-cli/issues/376))
+
+### Added
+- Support of All / Global quotas for API and application. (See issue [#362](https://github.com/Axway-API-Management-Plus/apim-cli/issues/362))
+- Host docker cli images on github docker registry [#373](https://github.com/Axway-API-Management-Plus/apim-cli/issues/373))
+
+
+## [1.13.5] 2023-03-15
+
+### Fixed
+- apim does not import the whole chain in a PEM certificate (See issue [#361](https://github.com/Axway-API-Management-Plus/apim-cli/issues/361))
+- Field BackendBasePath in api-config.json not used (See issue [#354](https://github.com/Axway-API-Management-Plus/apim-cli/issues/354))
+- APIM-CLI Fails to export API WSDL Specifications starting with comments (See issue [#364](https://github.com/Axway-API-Management-Plus/apim-cli/issues/364))
+- APIM-CLI - parsing valid metadata fails for OdataV4 api (See issue [#363](https://github.com/Axway-API-Management-Plus/apim-cli/issues/363))
+
+### Added
+- Introduced new parameter **overrideSpecBasePath** to fix issue [#354](https://github.com/Axway-API-Management-Plus/apim-cli/issues/354)
+- Introduced new parameter **timeout** to handle read, connection and socket timout. The default value is 30 seconds.
+
+## [1.13.4] 2023-02-28
+
+### Fixed
+- Retry-Delay does not appear in help text (See issue [#349](https://github.com/Axway-API-Management-Plus/apim-cli/issues/349))
+- Dat file is not exported if Export API with an Organization that have a virtual host containing a ":" (See issue [#352](https://github.com/Axway-API-Management-Plus/apim-cli/issues/352))
+- backendBasepath not working correctly when server url missing in swagger (See issue [#348](https://github.com/Axway-API-Management-Plus/apim-cli/issues/348))
+
+### Added
+- Support yaml configuration for apim cli (Beta)
+- Support for APIM February 2023 release [#346](https://github.com/Axway-API-Management-Plus/apim-cli/issues/346))
+
+
+## [1.13.3] 2023-02-08
+
+### Fixed
+- Special characters in Policy name used request, response or routing policy of an API (See issue [#336](https://github.com/Axway-API-Management-Plus/apim-cli/issues/336))
+- Export of API created manually in API Manager fails with apim-cli (See issue [#337](https://github.com/Axway-API-Management-Plus/apim-cli/issues/337))
+- Support API Gateway environment variable (${env.backend}) in Backend base path (See issue [#332](https://github.com/Axway-API-Management-Plus/apim-cli/issues/332))
+- BackendBasepath not handled properly for open api specification (See issue [#341](https://github.com/Axway-API-Management-Plus/apim-cli/issues/341))
+
+## Added
+
+- APIM Multiple Organization support
+- Sonar cloud code coverage -  [SonarCloud](https://sonarcloud.io/summary/new_code?id=Axway-API-Management-Plus_apim-cli). 
+
+## Removed
+- APIM 7.6.2 support
+- Parameters ignoreAdminAccount and allowOrgAdminsToPublish in favor of multi organization support
+- Parameter replaceHostInSwagger. 
+
+## [1.13.2] 2022-12-13
+
+### Fixed
+
+- Export apiRoutingKey (See issue [#323](https://github.com/Axway-API-Management-Plus/apim-cli/issues/323))
+- apim-cli behaviour during restoration of 2 identical apis but exposed on two different virtual host  (See issue [#331](https://github.com/Axway-API-Management-Plus/apim-cli/issues/331))
+- APIM UI FeAPI via UI WSDL import, exported and imported by CLI fails, due to wsdl file reference api-config.json (See issue [#328](https://github.com/Axway-API-Management-Plus/apim-cli/issues/328))
+    - Added an environment variable with value **retain.backend.url=true** to add URL used to import WSDL to API manger to api-config.json instead of writing WSDL to file system.
+- BUILD SUCCESSFUL despite errors during pipeline execution for publish and un-publish operations (See issue [#330](https://github.com/Axway-API-Management-Plus/apim-cli/issues/330))
+- Upgraded jackson, ascii-table and log4j jars to latest versions
+
+### Added
+- Support for November 2022 APIM release (7.7-20221130)
+
+
+
+## [1.13.1] 2022-11-15 
+
+### Fixed
+- Get API causes an error when related certificates contains slash character '/' in their CN (See issue [#315](https://github.com/Axway-API-Management-Plus/apim-cli/issues/315))
+- globalrequest and response polices are not handled correctly using apim settings import (See issue [#325](https://github.com/Axway-API-Management-Plus/apim-cli/issues/325))
+- Add support for OData V4 specifications  (See issue [#234](https://github.com/Axway-API-Management-Plus/apim-cli/issues/234))
+- Security fix - Bump commons-text from 1.9 to 1.10.0
+- Security fix Bump jackson-databind from 2.13.3 to 2.13.4.1
+
+### Changed
+- Cleaned up some System.out.println to reduce console output
+
+### Added
+- command "api check-certs -days 90 -s api-env -o json" command writes json output on console
+
 ## [1.13.0] 2022-09-23
 
 ### Fixed
-- Junit fix (See issue [#305](https://github.com/Axway-API-Management-Plus/apim-cli/issues/305)
-- Attempt to import WSDL API definition produces HTTP error code 400 when creating front end API (See issue [#308](https://github.com/Axway-API-Management-Plus/apim-cli/issues/308)
-- AXWAY_APIM_CLI_HOME in the environment may break tests (See issue [#306](https://github.com/Axway-API-Management-Plus/apim-cli/issues/306)
-- Allow override per method for tags (See issue [#162](https://github.com/Axway-API-Management-Plus/apim-cli/issues/162)
-- apim cli always use first org for api deployment if user is assigned to multiple org (See issue [#311](https://github.com/Axway-API-Management-Plus/apim-cli/issues/311)
+- Junit fix (See issue [#305](https://github.com/Axway-API-Management-Plus/apim-cli/issues/305))
+- Attempt to import WSDL API definition produces HTTP error code 400 when creating front end API (See issue [#308](https://github.com/Axway-API-Management-Plus/apim-cli/issues/308))
+- AXWAY_APIM_CLI_HOME in the environment may break tests (See issue [#306](https://github.com/Axway-API-Management-Plus/apim-cli/issues/306))
+- Allow override per method for tags (See issue [#162](https://github.com/Axway-API-Management-Plus/apim-cli/issues/162))
+- apim cli always use first org for api deployment if user is assigned to multiple org (See issue [#311](https://github.com/Axway-API-Management-Plus/apim-cli/issues/311))
 
 ### Added
 - Automate APIM CLI config file creation based on openapi specification
@@ -21,9 +113,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-- oas 3.0 base path handling (See issue [#297](https://github.com/Axway-API-Management-Plus/apim-cli/issues/297)
-- BackendBasepath problem exporting SOAP API with apim-cli (See issue [#299](https://github.com/Axway-API-Management-Plus/apim-cli/issues/299)
-- Importing SOAP API with apim-cli adds "+" instead of spaces for the Backend API name (See issue [#301](https://github.com/Axway-API-Management-Plus/apim-cli/issues/301)
+- oas 3.0 base path handling (See issue [#297](https://github.com/Axway-API-Management-Plus/apim-cli/issues/297))
+- BackendBasepath problem exporting SOAP API with apim-cli (See issue [#299](https://github.com/Axway-API-Management-Plus/apim-cli/issues/299))
+- Importing SOAP API with apim-cli adds "+" instead of spaces for the Backend API name (See issue [#301](https://github.com/Axway-API-Management-Plus/apim-cli/issues/301))
 
 ### Changed
 - Added new parameter disableCompression.  The parameter enables logging API Gateway responses for debugging.

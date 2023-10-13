@@ -3,10 +3,9 @@
   "path": "/api/v1/Some.Services/XmlApi",
   "state": "published",
   "version": "kk1",
-  "organization": "API Development",
+  "organization": "orga",
   "apiDefinition": "the-api-definition.json",
   "backendBasepath": "https://the.backend.of.the.service/Some.Services/XmlApi",
-  "replaceHostInSwagger": false,
   "authenticationProfiles": [
     {
       "name": "_default",
@@ -26,5 +25,9 @@
       },
       "type": "oauth"
     }
-  ]
+  ],
+  "customProperties": {
+    "customProperty1": "public",
+    "customProperty4": "true"
+  }
 }

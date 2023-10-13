@@ -6,15 +6,15 @@ import java.io.IOException;
 import com.axway.apim.api.model.apps.ClientAppCredential;
 import com.axway.apim.api.model.apps.OAuth;
 import com.axway.apim.appexport.impl.JsonApplicationExporter;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 public class AppCredentialsSerializer extends StdSerializer<ClientAppCredential> {
-	
-	private final JsonSerializer<Object> defaultSerializer;
+
+	private final transient JsonSerializer<Object> defaultSerializer;
 	
 	private File localFolder;
 	

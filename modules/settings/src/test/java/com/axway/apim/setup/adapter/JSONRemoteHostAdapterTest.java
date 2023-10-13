@@ -1,33 +1,43 @@
 package com.axway.apim.setup.adapter;
 
-import java.io.IOException;
-import java.util.Map;
-
+import com.axway.apim.WiremockWrapper;
+import com.axway.apim.api.model.RemoteHost;
+import com.axway.apim.lib.StandardImportParams;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.utils.Utils;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.axway.apim.adapter.apis.APIManagerMockBase;
-import com.axway.apim.api.model.RemoteHost;
-import com.axway.apim.lib.StandardImportParams;
-import com.axway.apim.lib.errorHandling.AppException;
+import java.util.Map;
 
-public class JSONRemoteHostAdapterTest extends APIManagerMockBase {
+public class JSONRemoteHostAdapterTest  extends WiremockWrapper {
+
+	@BeforeClass
+	public void init() {
+		initWiremock();
+	}
+
+	@AfterClass
+	public void stop() {
+		close();
+	}
 	
 	private static final String PACKAGE = "com/axway/apim/setup/adapter/";
-	
-	@BeforeClass
-	public void setupTestIndicator() throws AppException, IOException {
-		setupMockData();
-	}
+
 	
 	@Test
 	public void testNonStagedMultiRemoteHosts() throws AppException {
 		StandardImportParams importParams = new StandardImportParams();
+
 		String configFileName = this.getClass().getClassLoader().getResource(PACKAGE + "two-remotehosts-config.json").getFile();
 		importParams.setConfig(configFileName);
-		
-		JSONAPIManagerConfigAdapter adapter = new JSONAPIManagerConfigAdapter(importParams);
+		importParams.setUsername("orgadmin");
+		importParams.setPassword(Utils.getEncryptedPassword());
+		importParams.setHostname("localhost");
+
+		APIManagerConfigAdapter adapter = new APIManagerConfigAdapter(importParams);
 		Map<String, RemoteHost> remoteHosts = adapter.getManagerConfig().getRemoteHosts();
 		
 		Assert.assertEquals(remoteHosts.size(), 2, "Two Remote Hosts are expected");
@@ -36,17 +46,17 @@ public class JSONRemoteHostAdapterTest extends APIManagerMockBase {
 		RemoteHost remoteHost2 = remoteHosts.get("My-Second-Remote-Host");
 		
 		Assert.assertEquals(remoteHost1.getName(), "localhostrathna");
-		Assert.assertEquals(remoteHost1.getPort(), new Integer(80));
-		Assert.assertEquals(remoteHost1.getOrganization().getName(), "API Development");
-		Assert.assertEquals(remoteHost1.getCreatedBy().getName(), "API Administrator");
-		Assert.assertEquals(remoteHost1.getCreatedBy().getId(), "f60e3e05-cdf3-4b70-affc-4cb61a10f4bb");
+		Assert.assertEquals(remoteHost1.getPort(), 80);
+		Assert.assertEquals(remoteHost1.getOrganization().getName(), "orga");
+		Assert.assertEquals(remoteHost1.getCreatedBy().getName(), "usera");
+		Assert.assertEquals(remoteHost1.getCreatedBy().getId(), "2f126140-db10-4ccb-be9d-e430d9fe9c45");
 		
 		Assert.assertEquals(remoteHost2.getName(), "samplehost.com");
-		Assert.assertEquals(remoteHost2.getPort(), new Integer(80));
-		Assert.assertEquals(remoteHost2.getOrganization().getName(), "FHIR");
-		Assert.assertEquals(remoteHost2.getCreatedBy().getName(), "Fred Smith");
-		Assert.assertEquals(remoteHost2.getCreatedBy().getLoginName(), "fred");
-		Assert.assertEquals(remoteHost2.getCreatedBy().getId(), "c888af4e-0728-4e82-880c-7cf490138220");
+		Assert.assertEquals(remoteHost2.getPort(), 80);
+		Assert.assertEquals(remoteHost2.getOrganization().getName(), "orga");
+		Assert.assertEquals(remoteHost2.getCreatedBy().getName(), "usera");
+		Assert.assertEquals(remoteHost2.getCreatedBy().getLoginName(), "usera");
+		Assert.assertEquals(remoteHost2.getCreatedBy().getId(), "2f126140-db10-4ccb-be9d-e430d9fe9c45");
 	}
 	
 	@Test
@@ -55,8 +65,10 @@ public class JSONRemoteHostAdapterTest extends APIManagerMockBase {
 		String configFileName = this.getClass().getClassLoader().getResource(PACKAGE + "two-remotehosts-config.json").getFile();
 		importParams.setConfig(configFileName);
 		importParams.setStage("test-stage");
-		
-		JSONAPIManagerConfigAdapter adapter = new JSONAPIManagerConfigAdapter(importParams);
+		importParams.setUsername("orgadmin");
+		importParams.setPassword(Utils.getEncryptedPassword());
+		importParams.setHostname("localhost");
+		APIManagerConfigAdapter adapter = new APIManagerConfigAdapter(importParams);
 		Map<String, RemoteHost> remoteHosts = adapter.getManagerConfig().getRemoteHosts();
 		
 		Assert.assertEquals(remoteHosts.size(), 2, "Two Remote Hosts are expected");
@@ -65,13 +77,13 @@ public class JSONRemoteHostAdapterTest extends APIManagerMockBase {
 		RemoteHost remoteHost2 = remoteHosts.get("My-Second-Remote-Host");
 		
 		Assert.assertEquals(remoteHost1.getName(), "staged-remotehost.com");
-		Assert.assertEquals(remoteHost1.getPort(), new Integer(9999));
-		Assert.assertEquals(remoteHost1.getOrganization().getName(), "API Development");
-		Assert.assertEquals(remoteHost1.getCreatedBy().getName(), "API Administrator");
-		Assert.assertEquals(remoteHost1.getCreatedBy().getId(), "f60e3e05-cdf3-4b70-affc-4cb61a10f4bb");
+		Assert.assertEquals(remoteHost1.getPort(), 9999);
+		Assert.assertEquals(remoteHost1.getOrganization().getName(), "orga");
+		Assert.assertEquals(remoteHost1.getCreatedBy().getName(), "usera");
+		Assert.assertEquals(remoteHost1.getCreatedBy().getId(), "2f126140-db10-4ccb-be9d-e430d9fe9c45");
 		
 		// Second remote host is NOT staged
 		Assert.assertEquals(remoteHost2.getName(), "samplehost.com");
-		Assert.assertEquals(remoteHost2.getPort(), new Integer(80));
+		Assert.assertEquals(remoteHost2.getPort(), 80);
 	}
 }

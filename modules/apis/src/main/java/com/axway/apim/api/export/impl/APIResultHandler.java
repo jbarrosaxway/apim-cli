@@ -1,6 +1,7 @@
 package com.axway.apim.api.export.impl;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
@@ -32,13 +33,13 @@ import com.axway.apim.api.model.OutboundProfile;
 import com.axway.apim.api.model.SecurityDevice;
 import com.axway.apim.api.model.SecurityProfile;
 import com.axway.apim.lib.Result;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 import com.axway.apim.lib.utils.Utils;
 
 public abstract class APIResultHandler {
 
-    protected static Logger LOG = LoggerFactory.getLogger(APIResultHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(APIResultHandler.class);
     APIExportParams params;
 
     protected Result result;
@@ -46,12 +47,13 @@ public abstract class APIResultHandler {
 
     public enum APIListImpl {
         JSON_EXPORTER(JsonAPIExporter.class),
+        YAML_EXPORTER(YamlAPIExporter.class),
         CONSOLE_EXPORTER(ConsoleAPIExporter.class),
         CSV_EXPORTER(CSVAPIExporter.class),
         DAT_EXPORTER(DATAPIExporter.class),
         API_DELETE_HANDLER(DeleteAPIHandler.class),
         API_PUBLISH_HANDLER(PublishAPIHandler.class),
-        API_UNPUBLISH_HANDLER(UnpublishAPIHandler.class),
+        API_UNPUBLISH_HANDLER(UnPublishAPIHandler.class),
         API_CHANGE_HANDLER(APIChangeHandler.class),
         API_APPROVE_HANDLER(ApproveAPIHandler.class),
         API_UPGRADE_ACCESS_HANDLE(UpgradeAccessAPIHandler.class),
@@ -70,12 +72,12 @@ public abstract class APIResultHandler {
         }
     }
 
-    public APIResultHandler(APIExportParams params) {
+    protected APIResultHandler(APIExportParams params) {
         this.params = params;
         this.result = new Result();
     }
 
-    public APIResultHandler(APIExportParams params, Result result) {
+    protected APIResultHandler(APIExportParams params, Result result) {
         this.params = params;
         this.result = result;
     }
@@ -83,7 +85,7 @@ public abstract class APIResultHandler {
     public static APIResultHandler create(APIListImpl exportImpl, APIExportParams params) throws AppException {
         try {
             Object[] intArgs = new Object[]{params};
-            Constructor<APIResultHandler> constructor = exportImpl.getClazz().getConstructor(new Class[]{APIExportParams.class});
+            Constructor<APIResultHandler> constructor = exportImpl.getClazz().getConstructor(APIExportParams.class);
             return constructor.newInstance(intArgs);
         } catch (Exception e) {
             throw new AppException("Error initializing API export handler", ErrorCode.UNXPECTED_ERROR, e);
@@ -240,22 +242,22 @@ public abstract class APIResultHandler {
             }
             return grantedOrgs;
         } catch (Exception e) {
-            LOG.error("Error getting API client organization");
+            LOG.error("Error getting API client organization", e);
             return grantedOrgs;
         }
     }
 
     protected void validateFolder(File localFolder) throws AppException {
         if (localFolder.exists()) {
-            if (params.isDeleteTarget()) {
-                LOG.debug("Existing local export folder: " + localFolder + " already exists and will be deleted.");
+            if (Boolean.TRUE.equals(params.isDeleteTarget())) {
+                LOG.debug("Existing local export folder: {} already exists and will be deleted.", localFolder);
                 try {
                     FileUtils.deleteDirectory(localFolder);
                 } catch (IOException e) {
                     throw new AppException("Error deleting local folder", ErrorCode.UNXPECTED_ERROR, e);
                 }
             } else {
-                LOG.warn("Local export folder: " + localFolder + " already exists. API will not be exported. (You may set -deleteTarget)");
+                LOG.warn("Local export folder: {} already exists. API will not be exported. (You may set -deleteTarget)", localFolder);
                 return;
             }
         }
@@ -263,4 +265,23 @@ public abstract class APIResultHandler {
             throw new AppException("Cant create export folder: " + localFolder, ErrorCode.UNXPECTED_ERROR);
         }
     }
+
+    protected String getAPIExportFolder(String apiExposurePath) {
+        if (apiExposurePath.startsWith("/"))
+            apiExposurePath = apiExposurePath.replaceFirst("/", "");
+        if (apiExposurePath.endsWith("/"))
+            apiExposurePath = apiExposurePath.substring(0, apiExposurePath.length() - 1);
+        apiExposurePath = apiExposurePath.replace("/", "-");
+        return apiExposurePath;
+    }
+
+    protected void writeBytesToFile(byte[] bFile, String fileDest) throws AppException {
+
+        try (FileOutputStream fileOutputStream = new FileOutputStream(fileDest)) {
+            fileOutputStream.write(bFile);
+        } catch (IOException e) {
+            throw new AppException("Can't write file", ErrorCode.UNXPECTED_ERROR, e);
+        }
+    }
+
 }

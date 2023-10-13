@@ -4,31 +4,29 @@ import com.axway.apim.lib.CLIOptions;
 import com.axway.apim.lib.CoreCLIOptions;
 import com.axway.apim.lib.CoreParameters;
 import com.axway.apim.lib.Parameters;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.error.AppException;
 
 public class SampleCLIOptions extends CLIOptions {
 
-	private SampleCLIOptions(String[] args) {
-		super(args);
-	}
-	
-	public static CLIOptions create(String[] args) {
-		CLIOptions cliOptions = new SampleCLIOptions(args);
-		cliOptions = new CoreCLIOptions(cliOptions);
-		cliOptions.addOptions();
-		cliOptions.parse();
-		return cliOptions;
-	}
+    private SampleCLIOptions(String[] args) {
+        super(args);
+    }
 
-	@Override
-	public Parameters getParams() throws AppException {
-		return new CoreParameters();
-	}
+    public static CLIOptions create(String[] args) throws AppException {
+        CLIOptions cliOptions = new SampleCLIOptions(args);
+        cliOptions = new CoreCLIOptions(cliOptions);
+        cliOptions.addOptions();
+        cliOptions.parse();
+        return cliOptions;
+    }
 
-	@Override
-	public void addOptions() {
-		// No additional options - As this class only exists to test CoreCLIOptions
-		return;
-	}
+    @Override
+    public Parameters getParams() throws AppException {
+        return new CoreParameters();
+    }
+
+    @Override
+    public void addOptions() {
+    }
 
 }

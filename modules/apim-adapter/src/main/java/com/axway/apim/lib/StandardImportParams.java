@@ -1,15 +1,14 @@
 package com.axway.apim.lib;
 
-import java.util.List;
-
+import com.axway.apim.adapter.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.axway.apim.adapter.APIManagerAdapter.CacheType;
+import java.util.List;
 
 public class StandardImportParams extends CoreParameters {
 	
-	private static Logger LOG = LoggerFactory.getLogger(StandardImportParams.class);
+	private static final Logger LOG = LoggerFactory.getLogger(StandardImportParams.class);
 	
 	private String config;
 	
@@ -42,18 +41,13 @@ public class StandardImportParams extends CoreParameters {
 	@Override
 	public boolean isIgnoreCache() {
 		// Caches are disabled for import actions if not explicitly enabled
-		if(getEnabledCaches()==null || super.isIgnoreCache()) {
-			return true;
-		} else {
-			return false;
-		}
+		return getEnabledCaches() == null || super.isIgnoreCache();
 	}
 	
 	public String getEnabledCaches() {
 		return enabledCaches;
 	}
 
-	@Override
 	public List<CacheType> getEnabledCacheTypes() {
 		if(isIgnoreCache()) return null;
 		if(getEnabledCaches()==null) return null;

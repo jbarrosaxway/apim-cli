@@ -1,34 +1,34 @@
 package com.axway.apim.test.queryStringRouting;
 
-import java.io.IOException;
-
-import org.springframework.http.HttpStatus;
-import org.testng.annotations.Optional;
-import org.testng.annotations.Parameters;
-import org.testng.annotations.Test;
-
 import com.axway.apim.adapter.APIManagerAdapter;
-import com.axway.apim.lib.errorHandling.AppException;
 import com.axway.apim.test.ImportTestAction;
-import com.axway.lib.APIManagerConfig;
 import com.consol.citrus.annotations.CitrusResource;
 import com.consol.citrus.annotations.CitrusTest;
 import com.consol.citrus.context.TestContext;
 import com.consol.citrus.dsl.testng.TestNGCitrusTestRunner;
 import com.consol.citrus.functions.core.RandomNumberFunction;
 import com.consol.citrus.message.MessageType;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.springframework.http.HttpStatus;
+import org.testng.annotations.Optional;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
+
+import java.io.IOException;
 
 @Test
 public class ValidateQueryStringTestIT extends TestNGCitrusTestRunner {
 
-	private ImportTestAction swaggerImport;
-	
+	private static final ObjectMapper mapper = new ObjectMapper();
+
 	@CitrusTest
 	@Test @Parameters("context")
-	public void run(@Optional @CitrusResource TestContext context) throws IOException, AppException {
-		swaggerImport = new ImportTestAction();
+	public void run(@Optional @CitrusResource TestContext context) throws IOException {
+		ImportTestAction swaggerImport = new ImportTestAction();
 		description("Validate query string routing can be controlled and works as expected.");
-		
+		createVariable("useApiAdmin", "true");
 		variable("apiNumber", RandomNumberFunction.getRandomNumber(3, true));
 		variable("apiPath", "/query-string-api-${apiNumber}");
 		variable("apiName", "Query-String-API-${apiNumber}");
@@ -38,7 +38,7 @@ public class ValidateQueryStringTestIT extends TestNGCitrusTestRunner {
 		echo("Turn Query-String feature ON in API-Manager to test it");
 		http(builder -> builder.client("apiManager").send().get("/config").header("Content-Type", "application/json"));
 		http(builder -> builder.client("apiManager").receive().response(HttpStatus.OK).messageType(MessageType.JSON).extractFromPayload("$", "managerConfig"));
-		variable("updatedConfig", APIManagerConfig.enableQueryBasedRouting(context.getVariable("managerConfig"), "abc"));
+		variable("updatedConfig", enableQueryBasedRouting(context.getVariable("managerConfig"), "abc"));
 		echo("updatedConfig: ${updatedConfig}");
 		http(builder -> builder.client("apiManager").send().put("/config").header("Content-Type", "application/json")
 				.payload("${updatedConfig}"));
@@ -124,7 +124,7 @@ public class ValidateQueryStringTestIT extends TestNGCitrusTestRunner {
 		swaggerImport.doExecute(context);
 		
 		// Turn Query-Based-Routing OFF
-		variable("updatedConfig", APIManagerConfig.disableQueryBasedRouting(context.getVariable("managerConfig")));
+		variable("updatedConfig", disableQueryBasedRouting(context.getVariable("managerConfig")));
 		http(builder -> builder.client("apiManager").send().put("/config").header("Content-Type", "application/json")
 				.payload("${updatedConfig}"));
 		http(builder -> builder.client("apiManager").receive().response(HttpStatus.OK).messageType(MessageType.JSON));
@@ -148,7 +148,7 @@ public class ValidateQueryStringTestIT extends TestNGCitrusTestRunner {
 		createVariable("apiPath", "/query-string-api-oadmin-${apiNumber}");
 		createVariable("apiName", "Query-String-API-OAdmin-${apiNumber}");
 		createVariable("state", "unpublished");
-		createVariable("ignoreAdminAccount", "true"); // This tests simulate to use only an Org-Admin-Account
+		createVariable("useApiAdmin", "false"); // This tests simulate to use only an Org-Admin-Account
 		createVariable("apiRoutingKey", "routeKeyD");
 		createVariable("apiName", "apiName-${apiRoutingKey}");
 		createVariable("expectedReturnCode", "0");
@@ -159,5 +159,20 @@ public class ValidateQueryStringTestIT extends TestNGCitrusTestRunner {
 				.validate("$.[?(@.path=='${apiPath}' && @.apiRoutingKey=='${apiRoutingKey}')].name", "${apiName}")
 				.validate("$.[?(@.path=='${apiPath}' && @.apiRoutingKey=='${apiRoutingKey}')].state", "${state}")
 				.validate("$.[?(@.path=='${apiPath}' && @.apiRoutingKey=='${apiRoutingKey}')].apiRoutingKey", "${apiRoutingKey}"));
+	}
+
+	public static String enableQueryBasedRouting(String managerConfig, String versionParameter) throws IOException {
+		// "apiRoutingKeyLocation": null, --> This is what we have
+		// "apiRoutingKeyLocation":"query|ver", --> This is what we need
+		JsonNode config = mapper.readTree(managerConfig);
+		((ObjectNode) config).put("apiRoutingKeyEnabled", true);
+		((ObjectNode) config).put("apiRoutingKeyLocation", "query|"+versionParameter);
+		return mapper.writeValueAsString(config);
+	}
+
+	public static String disableQueryBasedRouting(String managerConfig) throws IOException {
+		JsonNode config = mapper.readTree(managerConfig);
+		((ObjectNode) config).put("apiRoutingKeyEnabled", false);
+		return mapper.writeValueAsString(config);
 	}
 }

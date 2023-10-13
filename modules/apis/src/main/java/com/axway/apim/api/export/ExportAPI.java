@@ -2,26 +2,32 @@ package com.axway.apim.api.export;
 
 import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.api.API;
-import com.axway.apim.api.apiSpecification.APISpecification;
+import com.axway.apim.api.specification.APISpecification;
+import com.axway.apim.api.specification.WSDLSpecification;
 import com.axway.apim.api.model.*;
 import com.axway.apim.api.model.apps.ClientApplication;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.CoreParameters;
+import com.axway.apim.lib.EnvironmentProperties;
+import com.axway.apim.lib.error.AppException;
 import com.axway.apim.lib.utils.Utils;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-@JsonPropertyOrder({"name", "path", "state", "version", "organization", "apiSpecification", "summary", "descriptionType", "descriptionManual", "vhost", "remoteHost",
-        "backendBasepath", "image", "inboundProfiles", "outboundProfiles", "securityProfiles", "authenticationProfiles", "tags", "customProperties",
-        "corsProfiles", "caCerts", "applicationQuota", "systemQuota", "apiMethods"})
+@JsonPropertyOrder({"name", "path", "state", "version", "apiRoutingKey", "organization", "apiSpecification", "summary", "descriptionType", "descriptionManual", "vhost", "remoteHost",
+    "backendBasepath", "image", "inboundProfiles", "outboundProfiles", "securityProfiles", "authenticationProfiles", "tags", "customProperties",
+    "corsProfiles", "caCerts", "applicationQuota", "systemQuota", "apiMethods"})
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class ExportAPI {
     API actualAPIProxy = null;
 
-    public String getPath() throws AppException {
+    public String getPath() {
         return this.actualAPIProxy.getPath();
     }
 
@@ -38,17 +44,17 @@ public class ExportAPI {
         return this.actualAPIProxy.getApiDefinition();
     }
 
-    public Map<String, OutboundProfile> getOutboundProfiles() throws AppException {
+    public Map<String, OutboundProfile> getOutboundProfiles() {
         if (this.actualAPIProxy.getOutboundProfiles() == null) return null;
         if (this.actualAPIProxy.getOutboundProfiles().isEmpty()) return null;
         if (this.actualAPIProxy.getOutboundProfiles().size() == 1) {
             OutboundProfile defaultProfile = this.actualAPIProxy.getOutboundProfiles().get("_default");
             if (defaultProfile.getRouteType().equals("proxy")
-                    && defaultProfile.getAuthenticationProfile().equals("_default")
-                    && defaultProfile.getRequestPolicy() == null
-                    && defaultProfile.getRequestPolicy() == null
-                    && (APIManagerAdapter.hasAPIManagerVersion("7.6.2") && defaultProfile.getFaultHandlerPolicy() == null)
-            ) return null;
+                && defaultProfile.getAuthenticationProfile().equals("_default")
+                && defaultProfile.getRequestPolicy() == null
+                && defaultProfile.getResponsePolicy() == null
+                && defaultProfile.getFaultHandlerPolicy() == null)
+                return null;
         }
         for (OutboundProfile profile : this.actualAPIProxy.getOutboundProfiles().values()) {
             profile.setApiId(null);
@@ -63,6 +69,8 @@ public class ExportAPI {
 
     public List<SecurityProfile> getSecurityProfiles() throws AppException {
         if (this.actualAPIProxy.getSecurityProfiles().size() == 1) {
+            if (this.actualAPIProxy.getSecurityProfiles().get(0).getDevices().isEmpty())
+                return null;
             if (this.actualAPIProxy.getSecurityProfiles().get(0).getDevices().get(0).getType() == DeviceType.passThrough)
                 return null;
         }
@@ -110,7 +118,7 @@ public class ExportAPI {
         if (this.actualAPIProxy.getInboundProfiles().size() == 1) {
             InboundProfile defaultProfile = this.actualAPIProxy.getInboundProfiles().get("_default");
             if (defaultProfile.getSecurityProfile().equals("_default")
-                    && defaultProfile.getCorsProfile().equals("_default")) return null;
+                && defaultProfile.getCorsProfile().equals("_default")) return null;
         }
         return this.actualAPIProxy.getInboundProfiles();
     }
@@ -142,14 +150,14 @@ public class ExportAPI {
     }
 
 
-    public TagMap<String, String[]> getTags() {
+    public TagMap getTags() {
         if (this.actualAPIProxy.getTags() == null) return null;
         if (this.actualAPIProxy.getTags().isEmpty()) return null;
         return this.actualAPIProxy.getTags();
     }
 
 
-    public String getState() throws AppException {
+    public String getState() {
         return this.actualAPIProxy.getState();
     }
 
@@ -179,6 +187,10 @@ public class ExportAPI {
 
     public String getName() {
         return this.actualAPIProxy.getName();
+    }
+
+    public String getApiRoutingKey() {
+        return this.actualAPIProxy.getApiRoutingKey();
     }
 
 
@@ -236,7 +248,7 @@ public class ExportAPI {
 
     public List<CaCert> getCaCerts() {
         if (this.actualAPIProxy.getCaCerts() == null) return null;
-        if (this.actualAPIProxy.getCaCerts().size() == 0) return null;
+        if (this.actualAPIProxy.getCaCerts().isEmpty()) return null;
         return this.actualAPIProxy.getCaCerts();
     }
 
@@ -266,9 +278,9 @@ public class ExportAPI {
 
     public List<String> getClientOrganizations() throws AppException {
         if (!APIManagerAdapter.hasAdminAccount()) return null;
-        if (this.actualAPIProxy.getClientOrganizations().size() == 0) return null;
+        if (this.actualAPIProxy.getClientOrganizations().isEmpty()) return null;
         if (this.actualAPIProxy.getClientOrganizations().size() == 1 &&
-                this.actualAPIProxy.getClientOrganizations().get(0).getName().equals(getOrganization()))
+            this.actualAPIProxy.getClientOrganizations().get(0).getName().equals(getOrganization()))
             return null;
         List<String> orgs = new ArrayList<>();
         for (Organization org : this.actualAPIProxy.getClientOrganizations()) {
@@ -278,7 +290,7 @@ public class ExportAPI {
     }
 
     public List<ClientApplication> getApplications() {
-        if (this.actualAPIProxy.getApplications().size() == 0) return null;
+        if (this.actualAPIProxy.getApplications().isEmpty()) return null;
         List<ClientApplication> exportApps = new ArrayList<>();
         for (ClientApplication app : this.actualAPIProxy.getApplications()) {
             ClientApplication exportApp = new ClientApplication();
@@ -295,39 +307,33 @@ public class ExportAPI {
     @JsonProperty("apiSpecification")
     public DesiredAPISpecification getApiDefinitionImport() {
         DesiredAPISpecification spec = new DesiredAPISpecification();
-        spec.setResource(this.getAPIDefinition().getApiSpecificationFile());
+        if (this.getAPIDefinition() instanceof WSDLSpecification && EnvironmentProperties.RETAIN_BACKED_URL) {
+            spec.setResource(actualAPIProxy.getBackendImportedUrl());
+        } else
+            spec.setResource(this.getAPIDefinition().getApiSpecificationFile());
         return spec;
     }
 
 
     public String getBackendBasepath() {
-        //if(this.actualAPIProxy.getResourcePath()!=null) {
-        // The API Manager composes the actual backend path from the host + path and backend resource path
-        // specified in the frontend.
-        // So if the backend was imported with the resourcepath /v2 and the backend is configured with
-        // https://my.backend.host.com/another/path, the following backend results: https://my.backend.host.com/another/path/v2.
-        // So, in order for the exported backendBasepath to exactly match the configured backend, it must be
-        // composed of both properties.
-        // See issue: https://github.com/Axway-API-Management-Plus/apim-cli/issues/158
-        // https://github.com/Axway-API-Management-Plus/apim-cli/blob/develop/misc/images/behavior-useFEAPIDefinition.png
-
         //ISSUE-299
         // Resource path is part of API specification (like open api servers.url or swagger basePath) and we don't need to manage it in config file.
-        //	return this.getServiceProfiles().get("_default").getBasePath() + this.actualAPIProxy.getResourcePath();
-        //} else {
-        return this.getServiceProfiles().get("_default").getBasePath();
-        //}
+        String backendBasePath = this.getServiceProfiles().get("_default").getBasePath();
+        if (CoreParameters.getInstance().isOverrideSpecBasePath() && this.actualAPIProxy.getResourcePath() != null) { //Issue 354
+            backendBasePath = backendBasePath + this.actualAPIProxy.getResourcePath();
+        }
+        return backendBasePath;
     }
 
     public List<APIMethod> getApiMethods() {
         List<APIMethod> apiMethods = this.actualAPIProxy.getApiMethods();
-        if (apiMethods == null || apiMethods.size() == 0) return null;
+        if (apiMethods == null || apiMethods.isEmpty()) return null;
         List<APIMethod> apiMethodsTransformed = new ArrayList<>();
         for (APIMethod actualMethod : apiMethods) {
             APIMethod apiMethod = new APIMethod();
             apiMethod.setName(actualMethod.getName());
             apiMethod.setSummary(actualMethod.getSummary());
-            TagMap<String, String[]> tagMap = actualMethod.getTags();
+            TagMap tagMap = actualMethod.getTags();
             if (tagMap != null && tagMap.size() > 0)
                 apiMethod.setTags(actualMethod.getTags());
             apiMethodsTransformed.add(apiMethod);
@@ -342,9 +348,5 @@ public class ExportAPI {
             apiMethod.setDescriptionType(descriptionType);
         }
         return apiMethodsTransformed;
-    }
-
-    public String toStringShort() {
-        return this.actualAPIProxy.toStringShort();
     }
 }

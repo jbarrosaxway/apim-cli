@@ -1,5 +1,11 @@
 # Axway API-Management CLI
 
+[![License Apache2](https://img.shields.io/hexpm/l/plug.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+![Latest Release](https://img.shields.io/github/v/release/Axway-API-Management-Plus/apim-cli)
+
+![downloads](https://img.shields.io/github/downloads/Axway-API-Management-Plus/apim-cli/total)
+
+
 This CLI allows you to control the Axway API management solution without access through the Web UI. You can call the CLI manually or integrate it into a CI/CD pipeline. The CLI is based on [Swagger-Promote](https://github.com/Axway-API-Management-Plus/apimanager-swagger-promote), which has been refactored to support more use-cases than only API-Import and -Export.
 
 ## Everything as code
@@ -54,7 +60,9 @@ The automated End-2-End test suite contains of __116__ different scenarios, whic
 
 | Version       | Branch               | Status | Comment | 
 | :---          | :---                 | :---:  | :--- |
-| 7.7-20220830    | develop  |![Build Status](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml/badge.svg)|Requires version >=1.13.0, Multi-Org is not yet supported|
+| 7.7-20230228    | develop  |![Build Status](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml/badge.svg)|Requires version >=1.13.4|
+| 7.7-20221130    | test-with-7.7-20221130  |[![APIM CLI Integration test](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml/badge.svg)](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml)|Requires version >=1.13.2, Multi-Org supported from version 1.13.3|
+| 7.7-20220830    | test-with-7.7-20220830  |[![APIM CLI Integration test](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml/badge.svg?branch=test-with-7.7-20220830)](https://github.com/Axway-API-Management-Plus/apim-cli/actions/workflows/integration-test.yml)|Requires version >=1.13.0, Multi-Org is not yet supported|
 | 7.7-20220530    | test-with-7.7-20220530  | [![Build Status](https://img.shields.io/travis/Axway-API-Management-Plus/apim-cli/test-with-7.7-20211130)](https://app.travis-ci.com/github/Axway-API-Management-Plus/apim-cli/branches)|Requires version >=1.12.0, Multi-Org is not yet supported|
 | 7.7-20220228    | test-with-7.7-20220228  | [![Build Status](https://img.shields.io/travis/Axway-API-Management-Plus/apim-cli/test-with-7.7-20220228)](https://app.travis-ci.com/github/Axway-API-Management-Plus/apim-cli/branches)|Requires version >=1.10.1, Multi-Org is not yet supported|
 | 7.7-20211130    | test-with-7.7-20211130  | [![Build Status](https://img.shields.io/travis/Axway-API-Management-Plus/apim-cli/test-with-7.7-20211130)](https://app.travis-ci.com/github/Axway-API-Management-Plus/apim-cli/branches)|Requires version >=1.3.11, Multi-Org is not yet supported|

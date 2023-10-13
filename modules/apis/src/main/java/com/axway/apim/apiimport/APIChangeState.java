@@ -14,8 +14,8 @@ import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.api.API;
 import com.axway.apim.apiimport.lib.params.APIImportParams;
 import com.axway.apim.lib.APIPropertyAnnotation;
-import com.axway.apim.lib.errorHandling.AppException;
-import com.axway.apim.lib.errorHandling.ErrorCode;
+import com.axway.apim.lib.error.AppException;
+import com.axway.apim.lib.error.ErrorCode;
 
 /**
  * This class is key, as the desired and actual API comes together.
@@ -39,9 +39,9 @@ public class APIChangeState {
     private boolean updateExistingAPI = true;
     private boolean recreateAPI = false;
     private boolean proxyUpdateRequired = false;
-    private List<String> breakingChanges = new Vector<>();
-    private List<String> nonBreakingChanges = new Vector<>();
-    private String isAdminAccountNeeded = null;
+    private final List<String> breakingChanges = new Vector<>();
+    private final List<String> nonBreakingChanges = new Vector<>();
+
 
     /**
      * Constructs the APIChangeState based on the given Actual- and Desired-API.
@@ -58,7 +58,6 @@ public class APIChangeState {
             return;
         }
         getChanges();
-        isAdminAccountNeeded();
     }
 
     /**
@@ -91,8 +90,8 @@ public class APIChangeState {
                     Object desiredValue = method.invoke(desiredAPI, null);
                     Object actualValue = method2.invoke(actualAPI, null);
                     if (desiredValue == null && actualValue == null) continue;
-                    if(desiredValue == null) {
-                        LOG.debug("Ignoring Null-Property: " + field.getName() + "[Desired: '"+desiredValue+"' vs Actual: '"+actualValue+"']");
+                    if (desiredValue == null) {
+                        LOG.debug("Ignoring Null-Property: {} [Desired: {}  vs Actual: {}]", field.getName(), desiredValue, actualValue);
                         continue; // No change, if nothing is provided!
                     }
                     // desiredValue == null - This can be used to reset/clean a property! (Need to think about this!)
@@ -112,9 +111,9 @@ public class APIChangeState {
                         if (!isWritable(property, this.actualAPI.getState())) {
                             this.updateExistingAPI = false; // Found a NON-Changeable property, can't update the existing API
                         }
-                        LOG.debug("Changed property: " + field.getName() + "[Desired: '" + desiredValue + "' vs Actual: '" + actualValue + "']");
+                        LOG.debug("Changed property: {} [Desired: {} vs Actual: {}]", field.getName(), desiredValue, actualValue);
                     } else {
-                        LOG.debug("No change for property: " + field.getName() + "[Desired: '" + desiredValue + "' vs Actual: '" + actualValue + "']");
+                        LOG.debug("No change for property: {} [Desired: {} vs Actual: {}]", field.getName(), desiredValue, actualValue);
                     }
                 }
             } catch (Exception e) {
@@ -222,11 +221,7 @@ public class APIChangeState {
      * @return true, if a breakingChange or a nonBreakingChange was found otherwise false.
      */
     public boolean hasAnyChanges() {
-        if (this.breakingChanges.size() == 0 && this.nonBreakingChanges.size() == 0) {
-            return false;
-        } else {
-            return true;
-        }
+        return this.breakingChanges.size() != 0 || this.nonBreakingChanges.size() != 0;
     }
 
     /**
@@ -298,20 +293,16 @@ public class APIChangeState {
         return false;
     }
 
+
     public boolean isAdminAccountNeeded() throws AppException {
-        // Might be already set, right after comparing the Desired- with Actual-state
-        if (this.isAdminAccountNeeded != null) return Boolean.parseBoolean(this.isAdminAccountNeeded);
-        // Perhaps the API-Manager is configured with OAdmin-Self-Service support enabled (See <VMArg name="-Dapi.manager.orgadmin.selfservice.enabled=true"/>)
-        Boolean oadminSelfServiceEnabled = APIManagerAdapter.getInstance().configAdapter.getConfig(false).getOadminSelfServiceEnabled();
-        if (oadminSelfServiceEnabled != null && oadminSelfServiceEnabled) return false;
-        // If the desired & actual API is state Unpublished - No Admin-Account is needed
+        boolean orgAdminSelfServiceEnabled = APIManagerAdapter.getInstance().configAdapter.getConfig(APIManagerAdapter.hasAdminAccount()).getOadminSelfServiceEnabled();
+        if (orgAdminSelfServiceEnabled) return false;
         if ((getDesiredAPI().getState().equals(API.STATE_UNPUBLISHED) || getDesiredAPI().getState().equals(API.STATE_DELETED)) &&
                 (getActualAPI() == null || getActualAPI().getState().equals(API.STATE_UNPUBLISHED))) {
-            this.isAdminAccountNeeded = "false";
+            return false;
         } else {
-            this.isAdminAccountNeeded = "true";
+            return true;
         }
-        return Boolean.parseBoolean(this.isAdminAccountNeeded);
     }
 
     public String waiting4Approval() throws AppException {

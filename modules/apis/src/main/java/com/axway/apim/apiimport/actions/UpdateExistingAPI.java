@@ -4,9 +4,11 @@ import com.axway.apim.adapter.APIManagerAdapter;
 import com.axway.apim.adapter.APIStatusManager;
 import com.axway.apim.api.API;
 import com.axway.apim.api.model.APIMethod;
+import com.axway.apim.api.model.ServiceProfile;
 import com.axway.apim.apiimport.APIChangeState;
 import com.axway.apim.lib.APIPropertiesExport;
-import com.axway.apim.lib.errorHandling.AppException;
+import com.axway.apim.lib.CoreParameters;
+import com.axway.apim.lib.error.AppException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +30,7 @@ public class UpdateExistingAPI {
         List<APIMethod> actualAPIMethods = changes.getActualAPI().getApiMethods();
         APIManagerAdapter apiManager = APIManagerAdapter.getInstance();
         try {
-
-            LOG.info("Update existing " + actualAPI.getState() + " API: '" + actualAPI.getName() + "' " + actualAPI.getVersion() + " (ID: " + actualAPI.getId() + ")");
+            LOG.info("Update existing {} API: {} {} (ID: {})", actualAPI.getState(), actualAPI.getName(), actualAPI.getVersion(), actualAPI.getId());
             // Copy all desired proxy changes into the actual API
             APIChangeState.copyChangedProps(changes.getDesiredAPI(), changes.getActualAPI(), changes.getAllChanges());
             changes.getActualAPI().setApiMethods(null);
@@ -42,6 +43,16 @@ public class UpdateExistingAPI {
                 apiManager.apiAdapter.updateAPIProxy(changes.getActualAPI());
             }
             manageApiMethods.updateApiMethods(changes.getActualAPI().getId(),actualAPIMethods, desiredAPIMethods );
+            // Handle backendBasePath update
+            if(changes.getBreakingChanges().contains("serviceProfiles")){
+                String backendBasePath = changes.getDesiredAPI().getServiceProfiles().get("_default").getBasePath();
+                if(backendBasePath != null && !CoreParameters.getInstance().isOverrideSpecBasePath()) {
+                    ServiceProfile actualServiceProfile = changes.getActualAPI().getServiceProfiles().get("_default");
+                    LOG.info("Replacing existing API backendBasePath {} with new value : {}", actualServiceProfile.getBasePath(), backendBasePath);
+                    actualServiceProfile.setBasePath(backendBasePath);
+                    apiManager.apiAdapter.updateAPIProxy(changes.getActualAPI());
+                }
+            }
             // If image an include, update it
             if (changes.getAllChanges().contains("image")) {
                 apiManager.apiAdapter.updateAPIImage(changes.getActualAPI(), changes.getDesiredAPI().getImage());
@@ -54,7 +65,6 @@ public class UpdateExistingAPI {
             if (changes.getNonBreakingChanges().contains("retirementDate")) {
                 apiManager.apiAdapter.updateRetirementDate(changes.getActualAPI(), changes.getDesiredAPI().getRetirementDate());
             }
-
             // This is required when an API has been set back to Unpublished
             // In that case, the V-Host is reset to null - But we still want to use the configured V-Host
             if (statusUpdate.isUpdateVHostRequired()) {
@@ -65,11 +75,12 @@ public class UpdateExistingAPI {
             // Handle subscription to applications
             new ManageClientApps(changes.getDesiredAPI(), changes.getActualAPI(), null).execute(false);
             if (actualAPI.getState().equals(API.STATE_DELETED)) {
-                LOG.info(changes.waiting4Approval() + "Successfully deleted API: '" + actualAPI.getName() + "' " + actualAPI.getVersion() + " (ID: " + actualAPI.getId() + ")");
+                LOG.info("{} successfully deleted API: {} {} (ID: {})", changes.waiting4Approval(), actualAPI.getName(), actualAPI.getVersion(), actualAPI.getId());
             } else {
-                LOG.info(changes.waiting4Approval() + "Successfully updated " + actualAPI.getState() + " API: '" + actualAPI.getName() + "' " + actualAPI.getVersion() + " (ID: " + actualAPI.getId() + ")");
+                LOG.info("{} successfully updated {} API: {} {} (ID: {})", changes.waiting4Approval(), actualAPI.getState(), actualAPI.getName(), actualAPI.getVersion(), actualAPI.getId());
             }
         } catch (Exception e) {
+            LOG.error("Error updating existing API", e);
             throw e;
         } finally {
             APIPropertiesExport.getInstance().setProperty("feApiId", changes.getActualAPI().getId());
