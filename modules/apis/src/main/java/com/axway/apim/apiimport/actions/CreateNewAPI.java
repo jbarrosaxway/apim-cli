@@ -1,9 +1,11 @@
 package com.axway.apim.apiimport.actions;
 
+import com.axway.apim.adapter.apis.APIManagerAPIMethodAdapter;
 import com.axway.apim.api.model.APIMethod;
 import com.axway.apim.api.model.ServiceProfile;
 import com.axway.apim.apiimport.DesiredAPI;
 import com.axway.apim.lib.CoreParameters;
+import com.axway.apim.lib.EnvironmentProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +39,9 @@ public class CreateNewAPI {
 
         API desiredAPI = changes.getDesiredAPI();
         API actualAPI = changes.getActualAPI();
-
-        APIManagerAPIAdapter apiAdapter = APIManagerAdapter.getInstance().apiAdapter;
+        APIManagerAdapter apiManagerAdapter = APIManagerAdapter.getInstance();
+        APIManagerAPIAdapter apiAdapter = apiManagerAdapter.getApiAdapter();
+        APIManagerAPIMethodAdapter methodAdapter = apiManagerAdapter.getMethodAdapter();
         RollbackHandler rollback = RollbackHandler.getInstance();
 
         API createdBEAPI = apiAdapter.importBackendAPI(desiredAPI);
@@ -48,7 +51,7 @@ public class CreateNewAPI {
             desiredAPI.setApiId(createdBEAPI.getApiId());
             createdAPI = apiAdapter.createAPIProxy(desiredAPI);
             List<APIMethod> desiredApiMethods = desiredAPI.getApiMethods();
-            List<APIMethod> actualApiMethods = APIManagerAdapter.getInstance().methodAdapter.getAllMethodsForAPI(createdAPI.getId());
+            List<APIMethod> actualApiMethods = methodAdapter.getAllMethodsForAPI(createdAPI.getId());
             LOG.debug("Number of Methods : {}", actualApiMethods.size());
             ManageApiMethods manageApiMethods = new ManageApiMethods();
             manageApiMethods.updateApiMethods(createdAPI.getId(), actualApiMethods, desiredApiMethods);
@@ -89,6 +92,9 @@ public class CreateNewAPI {
                 // In case, the existing API is already in use (Published), we have to grant access to our new imported API
                 apiAdapter.upgradeAccessToNewerAPI(createdAPI, actualAPI);
             }
+            if (EnvironmentProperties.CHECK_CATALOG) {
+                apiAdapter.pollCatalogForPublishedState(createdAPI.getId(), createdAPI.getName(), createdAPI.getState());
+            }
             // Is a Quota is defined we must manage it
             new APIQuotaManager(desiredAPI, actualAPI).execute(createdAPI);
             // Grant access to the API
@@ -97,9 +103,10 @@ public class CreateNewAPI {
             new ManageClientApps(desiredAPI, createdAPI, actualAPI).execute(reCreation);
             // Provide the ID of the created API to the desired API just for logging purposes
             changes.getDesiredAPI().setId(createdAPI.getId());
-            LOG.info("{} Successfully created {} API: {} {} (ID: {})", changes.waiting4Approval(), createdAPI.getState(), createdAPI.getName(), createdAPI.getVersion(), createdAPI.getId());
-        } catch (Exception e) {
-            throw e;
+            LOG.info("Successfully created {} API: {} {} (ID: {})", createdAPI.getState(), createdAPI.getName(), createdAPI.getVersion(), createdAPI.getId());
+            if (!changes.waiting4Approval().isEmpty() && LOG.isInfoEnabled()) {
+                LOG.info("{}", changes.waiting4Approval());
+            }
         } finally {
             if (createdAPI == null) {
                 LOG.warn("Can't create PropertiesExport as createdAPI is null");

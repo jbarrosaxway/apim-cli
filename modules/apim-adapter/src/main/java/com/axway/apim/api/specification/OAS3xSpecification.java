@@ -20,8 +20,9 @@ import java.util.Objects;
 public class OAS3xSpecification extends APISpecification {
     private static final Logger LOG = LoggerFactory.getLogger(OAS3xSpecification.class);
     public static final String SERVERS = "servers";
+    public static final String OPENAPI = "openapi";
 
-    private JsonNode openAPI = null;
+    private JsonNode openApiNode = null;
 
     public OAS3xSpecification() {
         super();
@@ -38,13 +39,13 @@ public class OAS3xSpecification extends APISpecification {
     @Override
     public void filterAPISpecification() {
         if (filterConfig == null) return;
-        JsonNodeOpenAPI3SpecFilter.filter(openAPI, filterConfig);
+        JsonNodeOpenAPI3SpecFilter.filter(openApiNode, filterConfig);
     }
 
     @Override
     public String getDescription() {
-        if (this.openAPI.get("info") != null && this.openAPI.get("info").get("description") != null) {
-            return this.openAPI.get("info").get("description").asText();
+        if (this.openApiNode.get("info") != null && this.openApiNode.get("info").get("description") != null) {
+            return this.openApiNode.get("info").get("description").asText();
         } else {
             return "";
         }
@@ -55,7 +56,7 @@ public class OAS3xSpecification extends APISpecification {
         // Return the original given API-Spec if no filters are applied
         if (this.filterConfig == null) return this.apiSpecificationContent;
         try {
-            return mapper.writeValueAsBytes(openAPI);
+            return mapper.writeValueAsBytes(openApiNode);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error parsing API-Specification", e);
         }
@@ -66,9 +67,9 @@ public class OAS3xSpecification extends APISpecification {
         try {
             String url = Utils.handleOpenAPIServerUrl(host, basePath);
             ObjectNode newServer = createObjectNode("url", url);
-            ((ObjectNode) openAPI).set(SERVERS, mapper.createArrayNode().add(newServer));
+            ((ObjectNode) openApiNode).set(SERVERS, mapper.createArrayNode().add(newServer));
             configureBasePath(basePath, null);
-            this.apiSpecificationContent = this.mapper.writeValueAsBytes(openAPI);
+            this.apiSpecificationContent = this.mapper.writeValueAsBytes(openApiNode);
         } catch (AppException e) {
             LOG.error("Cannot replace servers in openapi.", e);
         } catch (MalformedURLException e) {
@@ -86,12 +87,12 @@ public class OAS3xSpecification extends APISpecification {
 
     @Override
     public void configureBasePath(String backendBasePath, API api) throws AppException {
-        if (backendBasePath == null && !openAPI.has(SERVERS)) {
+        if (backendBasePath == null && !openApiNode.has(SERVERS)) {
             throw new AppException("The open API specification doesn't contain a servers section and no backend basePath is given", ErrorCode.CANT_READ_API_DEFINITION_FILE);
         }
         try {
-            if (openAPI.has(SERVERS)) {
-                ArrayNode servers = (ArrayNode) openAPI.get(SERVERS);
+            if (openApiNode.has(SERVERS)) {
+                ArrayNode servers = (ArrayNode) openApiNode.get(SERVERS);
                 if (!servers.isEmpty()) {
                     // Remove remaining server nodes as  currently not handling multiple URLs
                     for (int i = 1; i < servers.size(); i++) {
@@ -105,15 +106,23 @@ public class OAS3xSpecification extends APISpecification {
                             if (CoreParameters.getInstance().isOverrideSpecBasePath()) {
                                 overrideServerSection(backendBasePath); // override openapi url with backendBaseapath
                             } else if (!serverUrl.startsWith("http")) { // If url does not have hostname, add hostname from backendBasepath
+                                LOG.info("servers.url does not contain host name hence updating host value from backendBasepath : {}", backendBasePath);
                                 updateServerSection(backendBasePath, serverUrl);
                             }
                         }
                     }
                 }
             } else {
-                updateServerSection(backendBasePath, "/");
+                LOG.info("Server element not found");
+                if (CoreParameters.getInstance().isOverrideSpecBasePath()) {
+                    if (backendBasePath != null)
+                        overrideServerSection(backendBasePath); // override openapi url to fix issue #412
+                } else {
+                    LOG.info("Setting up server element as /");
+                    updateServerSection(backendBasePath, "/");
+                }
             }
-            this.apiSpecificationContent = this.mapper.writeValueAsBytes(openAPI);
+            this.apiSpecificationContent = this.mapper.writeValueAsBytes(openApiNode);
         } catch (Exception e) {
             LOG.error("Cannot replace host in provided Open API. Continue with given host.", e);
         }
@@ -124,7 +133,7 @@ public class OAS3xSpecification extends APISpecification {
         backendBasePath = Utils.handleOpenAPIServerUrl(serverUrl, ignoreBasePath);
         LOG.info("Updating openapi Servers url with value : {}", backendBasePath);
         ObjectNode newServer = createObjectNode("url", backendBasePath);
-        ((ObjectNode) openAPI).set(SERVERS, mapper.createArrayNode().add(newServer));
+        ((ObjectNode) openApiNode).set(SERVERS, mapper.createArrayNode().add(newServer));
     }
 
     public void overrideServerSection(String backendBasePath) {
@@ -132,7 +141,7 @@ public class OAS3xSpecification extends APISpecification {
             backendBasePath = backendBasePath.substring(0, backendBasePath.length() - 1);
         LOG.info("overriding openapi Servers url with value : {}", backendBasePath);
         ObjectNode newServer = createObjectNode("url", backendBasePath);
-        ((ObjectNode) openAPI).set(SERVERS, mapper.createArrayNode().add(newServer));
+        ((ObjectNode) openApiNode).set(SERVERS, mapper.createArrayNode().add(newServer));
     }
 
     @Override
@@ -141,9 +150,9 @@ public class OAS3xSpecification extends APISpecification {
             super.parse(apiSpecificationContent);
             setMapperForDataFormat();
             if (this.mapper == null) return false;
-            openAPI = this.mapper.readTree(apiSpecificationContent);
-            LOG.debug("openapi tag value : {}", openAPI.get("openapi"));
-            return openAPI.has("openapi") && openAPI.get("openapi").asText().startsWith("3.0.");
+            openApiNode = this.mapper.readTree(apiSpecificationContent);
+            LOG.debug("openapi tag value : {}", openApiNode.get(OPENAPI));
+            return openApiNode.has(OPENAPI) && openApiNode.get(OPENAPI).asText().startsWith("3.0.");
         } catch (AppException e) {
             if (e.getError() == ErrorCode.UNSUPPORTED_FEATURE) {
                 throw e;
@@ -164,6 +173,6 @@ public class OAS3xSpecification extends APISpecification {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), openAPI);
+        return Objects.hash(super.hashCode(), openApiNode);
     }
 }

@@ -4,9 +4,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+# [1.14.3] In progress
+### Fixed
+- Error mapping is not applied when importing "app" (See issue [#437](https://github.com/Axway-API-Management-Plus/apim-cli/issues/437))
+
+# [1.14.2] 2023-08-29
+### Fixed
+- Regression in host (See issue [#413](https://github.com/Axway-API-Management-Plus/apim-cli/issues/413))
+- gson library 2.4 has vulnerability CVE-2022-25647 (See issue [#425](https://github.com/Axway-API-Management-Plus/apim-cli/issues/425))
+- Support August 2023 release (See issue [#426](https://github.com/Axway-API-Management-Plus/apim-cli/issues/426))
+
+
+# [1.14.1]  2023-07-31
+### Fixed
+- Null pointer when converting OData -> Open API  (See issue [#399](https://github.com/Axway-API-Management-Plus/apim-cli/issues/399))
+- nullpointer exception occuring while try to import an api (See issue [#390](https://github.com/Axway-API-Management-Plus/apim-cli/issues/390))
+- Backend basepath issue (See issue [#412](https://github.com/Axway-API-Management-Plus/apim-cli/issues/412))
+- No change is returning RC 0 instead of RC 10 (See issue [#401](https://github.com/Axway-API-Management-Plus/apim-cli/issues/401))
+### Added
+- Add revoke API access command from Org/Application (See issue [#419](https://github.com/Axway-API-Management-Plus/apim-cli/issues/419))
+### Changed
+- Updated libs
+    - jackson-* from 2.14.2 to 2.15.2
+    - commons-csv from 1.9.0 to 1.10.0
+    - org.ehcache from 3.9.9 to 3.10.8
+    - log4j-slf4j-impl from 2.19.0 to 2.20.0
+    - org.glassfish.jaxb 2.3.7 to 2.3.8
+    - org.apache.httpcomponent 4.5.13 4.5.14
+
+
+# [1.14.0]  2023-07-07
+### Fixed
+- Inbound Security - Query String Pass Through is not included in api get (See issue [#392](https://github.com/Axway-API-Management-Plus/apim-cli/issues/392))
+- breaking changes with overrideSpecBasePath = true (See issue [#397](https://github.com/Axway-API-Management-Plus/apim-cli/issues/397))
+### Added
+- Add an option to output the json config file in console(See issue [#322](https://github.com/Axway-API-Management-Plus/apim-cli/issues/322))
+    - Introduced an environment variable print_console.
+        - If the value is set to true, the json config file wille printed on console.
+        - Default value is false
+- Support 7.7 May 2023 release (See issue [#391](https://github.com/Axway-API-Management-Plus/apim-cli/issues/391))
+    - If settings are imported from old versions to May 2023 release, set following values  to null as os and architecture elements are removed, (Refer [RDAPI-29419](https://docs.axway.com/bundle/axway-open-docs/page/docs/apim_relnotes/20230530_apimgr_relnotes/index.html))
+    ```json
+    {
+      "os" : null,
+      "architecture" : null
+    }
+    ```
+
 ## [1.13.7] 2023-04-21
 
-
+### Fixed
 - Add output for apim.sh api check-cert (See issue [#374](https://github.com/Axway-API-Management-Plus/apim-cli/issues/374))
 - A change in application quota is not detected (See issue [#382](https://github.com/Axway-API-Management-Plus/apim-cli/issues/382))
 - Snakeyaml size limitation (Nullpointer Exception when downloading API Spec via apim CLI) (See issue [#384](https://github.com/Axway-API-Management-Plus/apim-cli/issues/384))

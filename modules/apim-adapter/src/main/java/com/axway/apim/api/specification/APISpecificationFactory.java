@@ -20,8 +20,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 
 public class APISpecificationFactory {
+
+    private APISpecificationFactory() {
+        throw new IllegalStateException("APISpecificationFactory class");
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger(APISpecificationFactory.class);
 
@@ -84,17 +89,22 @@ public class APISpecificationFactory {
             }
         }
         if (!failOnError) {
-            LOG.error("API: {} has a unknown/invalid API-Specification: {}" , apiName, getContentStart(apiSpecificationContent));
+            LOG.error("API: {} has a unknown/invalid API-Specification" , apiName);
+            if(LOG.isDebugEnabled()){
+                LOG.debug("Specification {}",  getContentStart(apiSpecificationContent));
+            }
             return new UnknownAPISpecification(apiName);
         }
-        LOG.error("API: {} has a unknown/invalid API-Specification: {}" , apiName, getContentStart(apiSpecificationContent));
+        if(LOG.isDebugEnabled()) {
+            LOG.debug("API: {} has a unknown/invalid API-Specification: {}", apiName, getContentStart(apiSpecificationContent));
+        }
         throw new AppException("Can't handle API specification. No suitable API-Specification implementation available.", ErrorCode.UNSUPPORTED_API_SPECIFICATION);
     }
 
     static String getContentStart(byte[] apiSpecificationContent) {
         try {
             if (apiSpecificationContent == null) return "API-Specification is null";
-            return (apiSpecificationContent.length < 200) ? new String(apiSpecificationContent, 0, apiSpecificationContent.length) : new String(apiSpecificationContent, 0, 200) + "...";
+            return (apiSpecificationContent.length < 200) ? new String(apiSpecificationContent) : new String(apiSpecificationContent, 0, 200) + "...";
         } catch (Exception e) {
             return "Cannot get content from API-Specification. " + e.getMessage();
         }
@@ -115,7 +125,10 @@ public class APISpecificationFactory {
             return getAPIDefinitionFromURL(Utils.getAPIDefinitionUriFromFile(apiDefinitionFile));
         } else if (Utils.isHttpUri(apiDefinitionFile)) {
             return getAPIDefinitionFromURL(apiDefinitionFile);
-        } else {
+        } else if(apiDefinitionFile.startsWith("data")){
+            byte[] data = Base64.getDecoder().decode(apiDefinitionFile.replaceFirst("data:.+,", ""));
+            return new ByteArrayInputStream(data);
+        }else {
             try {
                 File inputFile = new File(apiDefinitionFile);
                 if (inputFile.exists()) {

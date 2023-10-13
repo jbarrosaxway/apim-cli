@@ -14,12 +14,13 @@
 ~ limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
     <artifactId>parent</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.14.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Axway API-Manager CLI Parent</name>
@@ -52,9 +53,17 @@
         <skip.integration.tests>true</skip.integration.tests>
         <skip.unit.tests>false</skip.unit.tests>
         <sonar.organization>axway-api-management-plus</sonar.organization>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+        <sonar.test.exclusions>**/*.java</sonar.test.exclusions>
+        <sonar.issue.ignore.multicriteria>e1, e2</sonar.issue.ignore.multicriteria>
+        <sonar.issue.ignore.multicriteria.e1.ruleKey>java:S115</sonar.issue.ignore.multicriteria.e1.ruleKey>
+        <sonar.issue.ignore.multicriteria.e1.resourceKey>**/*.java</sonar.issue.ignore.multicriteria.e1.resourceKey>
+        <sonar.issue.ignore.multicriteria.e2.ruleKey>java:S106</sonar.issue.ignore.multicriteria.e2.ruleKey>
+        <sonar.issue.ignore.multicriteria.e2.resourceKey>**/*.java</sonar.issue.ignore.multicriteria.e2.resourceKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <wiremock.version>2.35.0</wiremock.version>
         <citrus.version>3.4.0</citrus.version>
+        <failsafe.version>3.3.2</failsafe.version>
     </properties>
     <scm>
         <connection>scm:git:https://github.com/Axway-API-Management-Plus/apim-cli.git</connection>
@@ -87,49 +96,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-apim-adapter</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-apis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-apps</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-organizations</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-users</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-tool</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-settings</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.axway-api-management-plus.apim-cli</groupId>
-                <artifactId>apimcli-spectoconfig</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.5.13</version>
+                <version>4.5.14</version>
                 <exclusions>
                     <exclusion>
                         <groupId>commons-codec</groupId>
@@ -160,32 +129,32 @@
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpmime</artifactId>
-                <version>4.5.13</version>
+                <version>4.5.14</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.14.2</version>
+                <version>2.15.2</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.14.2</version>
+                <version>2.15.2</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
-                <version>2.14.2</version>
+                <version>2.15.2</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-xml</artifactId>
-                <version>2.14.2</version>
+                <version>2.15.2</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-csv</artifactId>
-                <version>1.9.0</version>
+                <version>1.10.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.olingo</groupId>
@@ -248,7 +217,7 @@
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j-impl</artifactId>
-                <version>2.19.0</version>
+                <version>2.20.0</version>
             </dependency>
             <dependency>
                 <groupId>com.github.freva</groupId>
@@ -258,13 +227,26 @@
             <dependency>
                 <groupId>org.ehcache</groupId>
                 <artifactId>ehcache</artifactId>
-                <version>3.9.9</version>
+                <version>3.10.8</version>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jaxb</groupId>
                 <artifactId>jaxb-runtime</artifactId>
-                <version>2.3.6</version>
+                <version>2.3.8</version>
             </dependency>
+            <!-- Used by olingo -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>2.10.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.failsafe</groupId>
+                <artifactId>failsafe</artifactId>
+                <version>${failsafe.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
@@ -278,7 +260,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>3.11.0</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -287,12 +269,12 @@
             <plugin>
                 <groupId>com.consol.citrus.mvn</groupId>
                 <artifactId>citrus-maven-plugin</artifactId>
-                <version>2.7.7</version>
+                <version>${citrus.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
+                <version>3.0.0</version>
                 <configuration>
                     <failIfNoTests>true</failIfNoTests>
                     <!-- Skips unit tests if the value of skip.unit.tests property is true -->
@@ -321,7 +303,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -333,7 +315,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.8</version>
+                <version>0.8.10</version>
                 <executions>
                     <execution>
                         <id>default-prepare-agent</id>

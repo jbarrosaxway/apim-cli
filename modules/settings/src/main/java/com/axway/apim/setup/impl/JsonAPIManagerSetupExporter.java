@@ -6,6 +6,7 @@ import com.axway.apim.adapter.jackson.CustomYamlFactory;
 import com.axway.apim.adapter.jackson.PolicySerializerModifier;
 import com.axway.apim.adapter.jackson.UserSerializerModifier;
 import com.axway.apim.api.model.Config;
+import com.axway.apim.lib.EnvironmentProperties;
 import com.axway.apim.lib.ExportResult;
 import com.axway.apim.lib.error.AppException;
 import com.axway.apim.lib.error.ErrorCode;
@@ -43,29 +44,33 @@ public class JsonAPIManagerSetupExporter extends APIManagerSetupResultHandler {
 
 
     public void exportToFile(APIManagerConfig apimanagerConfig, APIManagerSetupResultHandler apiManagerSetupResultHandler) throws AppException {
-        String folderName = getExportFolder(apimanagerConfig.getConfig());
-        String targetFolder = params.getTarget();
-        File localFolder = new File(targetFolder + File.separator + folderName);
-        LOG.info("Going to export API-Manager configuration into folder: {}", localFolder);
-        if (localFolder.exists()) {
-            if (params.isDeleteTarget()) {
-                LOG.debug("Existing local export folder: {} already exists and will be deleted.", localFolder);
-                try {
-                    FileUtils.deleteDirectory(localFolder);
-                } catch (IOException e) {
-                    throw new AppException("Error deleting local folder", ErrorCode.UNXPECTED_ERROR, e);
-                }
-            } else {
-                LOG.warn("Local export folder: {} already exists. Configuration will not be exported. (You may set -deleteTarget)", localFolder);
-                this.hasError = true;
-                return;
-            }
-        }
-        if (!localFolder.mkdirs()) {
-            throw new AppException("Cannot create export folder: " + localFolder, ErrorCode.UNXPECTED_ERROR);
-        }
+        File localFolder = null;
         ObjectMapper mapper;
         String configFile;
+        if (!EnvironmentProperties.PRINT_CONFIG_CONSOLE) {
+            String folderName = getExportFolder(apimanagerConfig.getConfig());
+            String targetFolder = params.getTarget();
+            localFolder = new File(targetFolder + File.separator + folderName);
+            LOG.info("Going to export API-Manager configuration into folder: {}", localFolder);
+            if (localFolder.exists()) {
+                if (params.isDeleteTarget()) {
+                    LOG.debug("Existing local export folder: {} already exists and will be deleted.", localFolder);
+                    try {
+                        FileUtils.deleteDirectory(localFolder);
+                    } catch (IOException e) {
+                        throw new AppException("Error deleting local folder", ErrorCode.UNXPECTED_ERROR, e);
+                    }
+                } else {
+                    LOG.warn("Local export folder: {} already exists. Configuration will not be exported. (You may set -deleteTarget)", localFolder);
+                    this.hasError = true;
+                    return;
+                }
+            }
+            if (!localFolder.mkdirs()) {
+                throw new AppException("Cannot create export folder: " + localFolder, ErrorCode.UNXPECTED_ERROR);
+            }
+        }
+
         if (apiManagerSetupResultHandler instanceof YamlAPIManagerSetupExporter) {
             mapper = new ObjectMapper(CustomYamlFactory.createYamlFactory());
             configFile = "/apimanager-config.yaml";
@@ -75,22 +80,25 @@ public class JsonAPIManagerSetupExporter extends APIManagerSetupResultHandler {
         }
         try {
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
-
             mapper.registerModule(new SimpleModule().setSerializerModifier(new PolicySerializerModifier(true)));
             mapper.registerModule(new SimpleModule().setSerializerModifier(new UserSerializerModifier(true)));
             FilterProvider filters = new SimpleFilterProvider()
                 .addFilter("RemoteHostFilter", SimpleBeanPropertyFilter.serializeAllExcept("id", "organizationId"))
                 .addFilter("APIManagerConfigFilter", SimpleBeanPropertyFilter.serializeAllExcept("os", "architecture", "productVersion", "baseOAuth"))
-                .addFilter("QuotaRestrictionFilter", SimpleBeanPropertyFilter.serializeAllExcept( "apiId")) // Is handled in ExportApplication
+                .addFilter("QuotaRestrictionFilter", SimpleBeanPropertyFilter.serializeAllExcept("apiId")) // Is handled in ExportApplication
                 .setFailOnUnknownId(false);
             mapper.setFilterProvider(filters);
-            mapper.writeValue(new File(localFolder.getCanonicalPath() + configFile), apimanagerConfig);
-            result.addExportedFile(localFolder.getCanonicalPath() + configFile);
+            if (EnvironmentProperties.PRINT_CONFIG_CONSOLE) {
+                mapper.writeValue(System.out, apimanagerConfig);
+            } else {
+                mapper.writeValue(new File(localFolder.getCanonicalPath() + configFile), apimanagerConfig);
+                result.addExportedFile(localFolder.getCanonicalPath() + configFile);
+            }
         } catch (Exception e) {
             throw new AppException("Can't create configuration export", ErrorCode.UNXPECTED_ERROR, e);
         }
         LOG.info("Successfully exported API-Manager configuration into: {}{}", localFolder, configFile);
-        if (!APIManagerAdapter.hasAdminAccount()) {
+        if (!APIManagerAdapter.getInstance().hasAdminAccount()) {
             LOG.warn("Export has been done with an Org-Admin account only. Export of configuration restricted.");
         }
     }
@@ -98,7 +106,7 @@ public class JsonAPIManagerSetupExporter extends APIManagerSetupResultHandler {
     private String getExportFolder(Config config) {
         try {
             if (config == null) {
-                config = APIManagerAdapter.getInstance().configAdapter.getConfig(APIManagerAdapter.hasAdminAccount());
+                config = APIManagerAdapter.getInstance().getConfigAdapter().getConfig(APIManagerAdapter.getInstance().hasAdminAccount());
             }
             String name = config.getPortalName().toLowerCase();
             name = name.replace(" ", "-");

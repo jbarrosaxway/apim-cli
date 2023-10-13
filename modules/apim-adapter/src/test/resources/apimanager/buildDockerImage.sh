@@ -9,6 +9,8 @@ function exitScript() {
 	cd $currentDir
 	if [[ $rc = 10 ]]; then
 		echo "Supported versions"
+		echo "`basename $0` 7.7-20230830"
+		echo "`basename $0` 7.7-20230530"
 		echo "`basename $0` 7.7-20230228"
 		echo "`basename $0` 7.7-20221130"
 		echo "`basename $0` 7.7-20220830"
@@ -19,11 +21,6 @@ function exitScript() {
 		echo "`basename $0` 7.7-20210530"
 		echo "`basename $0` 7.7-20210330"
 		echo "`basename $0` 7.7-20200930"
-		echo "`basename $0` 7.7-20200730"
-		echo "`basename $0` 7.7-20200530"
-		echo "`basename $0` 7.7-20200331"
-		echo "`basename $0` 7.7-20200130"
-		echo "`basename $0` 7.7-SP2"
 	fi
 	exit $rc
 }
@@ -42,11 +39,21 @@ buildDir="$HOME/apim-cli-dockerimage"
 echo "Creating docker image for version $version"
 
 case "$version" in
-  7.7-20230228)
-    fedFile="swagger-promote-7.7-20230228.fed"
-    installer="APIGateway_7.7.20230228_Install_linux-x86-64_BN01.run"
-    dockerScripts="APIGateway_7.7.20230228-DockerScripts-2.8.0.tar.gz"
-    dockerScriptsDir="apigw-emt-scripts-2.8.0";;
+   7.7-20230830)
+        fedFile="swagger-promote-7.7-20230830.fed"
+        installer="APIGateway_7.7.20230830_Install_linux-x86-64_BN03.run"
+        dockerScripts="APIGateway_7.7.20230830-DockerScripts-2.12.0.tar.gz"
+        dockerScriptsDir="apigw-emt-scripts-2.12.0";;
+    7.7-20230530)
+        fedFile="swagger-promote-7.7-20230530.fed"
+        installer="APIGateway_7.7.20230530_Install_linux-x86-64_BN02.run"
+        dockerScripts="APIGateway_7.7.20230530-DockerScripts-2.10.0.tar.gz"
+        dockerScriptsDir="apigw-emt-scripts-2.10.0";;
+    7.7-20230228)
+        fedFile="swagger-promote-7.7-20230228.fed"
+        installer="APIGateway_7.7.20230228_Install_linux-x86-64_BN01.run"
+        dockerScripts="APIGateway_7.7.20230228-DockerScripts-2.8.0.tar.gz"
+        dockerScriptsDir="apigw-emt-scripts-2.8.0";;
 	7.7-20221130)
 		fedFile="swagger-promote-7.7-20221130.fed"
 		installer="APIGateway_7.7.20221130_Install_linux-x86-64_BN03.run"
@@ -78,31 +85,11 @@ case "$version" in
 		installer="APIGateway_7.7.20210530_Install_linux-x86-64_BN02.run";;
 	7.7-20210330)
 		fedFile="swagger-promote-7.7-20210330.fed"
-		installer="APIGateway_7.7.20210330_Install_linux-x86-64_BN06.run";;	
+		installer="APIGateway_7.7.20210330_Install_linux-x86-64_BN06.run";;
 	7.7-20200930)
 		fedFile="swagger-promote-7.7-20200930.fed"
 		installer="APIGateway_7.7.20200930_Install_linux-x86-64_BN03.run"
 		dockerScripts="APIGateway_7.7.20200130-1_DockerScripts.tar.gz";;
-	7.7-20200730)
-		fedFile="swagger-promote-7.7-20200130.fed"
-		installer="APIGateway_7.7.20200730_Install_linux-x86-64_BN02.run"
-		dockerScripts="APIGateway_7.7.20200130-1_DockerScripts.tar.gz";;
-	7.7-20200530)
-		fedFile="swagger-promote-7.7-20200130.fed"
-		installer="APIGateway_7.7.20200530_Install_linux-x86-64_BN02.run"
-		dockerScripts="APIGateway_7.7.20200130-1_DockerScripts.tar.gz";;
-	7.7-20200331)
-		fedFile="swagger-promote-7.7-20200130.fed"
-		installer="APIGateway_7.7_Install_linux-x86-64_BN3.run"
-		dockerScripts="APIGateway_7.7.20200130-1_DockerScripts.tar.gz";;
-	7.7-20200130)
-		fedFile="swagger-promote-7.7-20200130.fed"
-		installer="APIGateway_7.7.20200130_Install_linux-x86-64_BN02.run"
-		dockerScripts="APIGateway_7.7.20200130-1_DockerScripts.tar.gz";;
-	7.7-SP2)
-		fedFile="swagger-promote-7.7.fed"
-		installer="APIGateway_7.7_SP2_linux-x86-64_BN201912201.run"
-		dockerScripts="APIGateway_7.7-1_DockerScripts.tar.gz";;
 	*)
 		echo "Unknown version $version"
 		exitScript 10;;
@@ -139,7 +126,7 @@ fi
 
 if [[ ! -z "$dockerScriptsDir" ]]; then
 	cd "$dockerScriptsDir"
-else 
+else
 	cd *emt*
 fi
 
